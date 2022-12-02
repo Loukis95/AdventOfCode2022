@@ -62,7 +62,7 @@ fn response_for_when_rock(r2: &str) -> &'static str {
             std::cmp::Ordering::Equal => "A",
             _ => match r2_win {
                 std::cmp::Ordering::Equal => "B",
-                _ => { println!("ERROR2"); 0 }
+                _ => { println!("ERROR2"); "N" }
             }
         }
     }
@@ -79,7 +79,7 @@ fn response_for_when_paper(r2: &str) -> &'static str {
             std::cmp::Ordering::Equal => "B",
             _ => match r2_win {
                 std::cmp::Ordering::Equal => "C",
-                _ => { println!("ERROR2"); 0 }
+                _ => { println!("ERROR2"); "N" }
             }
         }
     }
@@ -96,7 +96,7 @@ fn response_for_when_scissors(r2: &str) -> &'static str {
             std::cmp::Ordering::Equal => "C",
             _ => match r2_win {
                 std::cmp::Ordering::Equal => "A",
-                _ => { println!("ERROR2"); 0 }
+                _ => { println!("ERROR2"); "N" }
             }
         }
     }

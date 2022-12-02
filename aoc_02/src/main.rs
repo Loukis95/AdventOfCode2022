@@ -77,7 +77,7 @@ fn main() {
 
     let total_score: usize = input.iter()
                         .map(|line| {
-                            let it = line.split_whitespace();
+                            let mut it = line.split_whitespace();
                             let r1 = it.next().unwrap();
                             let r2 = it.next().unwrap();
                             round_score(r1, r2)

@@ -10,7 +10,7 @@ env:
 
 jobs:
 
-  aoc01:
+  aoc_01:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
       run: cargo run -- src/input.txt
       working-directory: aoc_01
 
-  aoc01_2:
+  aoc_01_2:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -45,3 +45,39 @@ jobs:
     - name: Run
       run: cargo run -- src/input.txt
       working-directory: aoc_01_2
+
+  aoc_02:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+  
+    - name: Build
+      run: cargo build
+      working-directory: aoc_02
+    - name: Run
+      run: cargo run -- src/input.txt
+      working-directory: aoc_02
+
+  aoc_02_2:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+  
+    - name: Build
+      run: cargo build
+      working-directory: aoc_02_2
+    - name: Run
+      run: cargo run -- src/input.txt
+      working-directory: aoc_02_2

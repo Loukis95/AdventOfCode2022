@@ -4,6 +4,6 @@
         "conan": {}
     },
     "include": [
-        "/home/louis/AdventOfCode2022/build/generators/CMakePresets.json"
+        "/home/louis/programmation/c++/AdventOfCode2022/build/generators/CMakePresets.json"
     ]
 }

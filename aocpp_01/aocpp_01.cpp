@@ -6,12 +6,32 @@
 #include <string_view>
 #include <experimental/filesystem>
 
-template<class T>
-constexpr std::string read_all(std::basic_istream<T>& is)
-{
-    std::istreambuf_iterator<T> it{is}, end;
-    std::string s{it, end};
-    return s;
+struct Line {
+    operator std::string_view() const noexcept { return m_line; }
+    operator std::string() const noexcept { return m_line; }
+    operator std::string&() noexcept { return m_line; }
+    operator const std::string&() const noexcept { return m_line; }
+
+    std::string_view as_string_view() const noexcept { return m_line; }
+
+    std::string m_line;
+};
+
+std::istream& operator>>(std::istream& is, Line& line) {
+    std::istream::sentry sentry(is);
+    for (char c = is.get(); is; c = is.get())
+    {
+        if (c == '\n')
+        {
+            break;
+        }
+        line.m_line += c;
+    }
+    // may need to trim trailing whitespace...
+    if (is.flags() & std::ios_base::skipws)
+        while (!line.m_line.empty() && std::isspace(line.m_line.back()))
+            line.m_line.pop_back();
+    return is;
 }
 
 int main(int argc, char* argv[])
@@ -35,25 +55,13 @@ int main(int argc, char* argv[])
 
     // Create an input stream over the file
     auto input_stream = std::ifstream(input_filepath.c_str());
-    auto input = read_all(input_stream);
-    auto input_view = std::string_view(input);
+    auto input_view = std::ranges::istream_view<Line>(input_stream);
 
-    std::cout << input_view << std::endl;
-
-    // constexpr std::string_view delim{"\n"};
-    // auto splitter = std::ranges::views::split(input_view, delim);
-    
-    // Iterate over the input
-    // std::ranges::for_each(
-    //     splitter,
-    //     [](std::string& s){ std::cout << std::quoted(s, '"') << ' '; }
-    // );
-    // std::cout << '\n';
-
-    // for (std::string_view s: splitter) {
-    //     std::cout << s << ' ';
-    // }
-    // std::cout << '\n';
+    std::ranges::for_each(
+        std::views::counted(input_view.begin(), 5)
+            | std::views::filter([](auto& s){ return true; }),
+        [](auto& s){ std::cout << std::quoted(s.as_string_view(), '"') << ' '; }
+    );
 
     return 0;
 }

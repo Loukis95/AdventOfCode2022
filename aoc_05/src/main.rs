@@ -41,8 +41,9 @@ fn main() {
     program.iter().skip(1)
         .for_each(|line| {
             println!("{}", line);
-            let pr = line.split("move from to").collect::<Vec<_>>();
-            //.map(|x| x.parse::<usize>().unwrap()).collect::<Vec<_>>();
+            let pr = line.split("move from to")
+                .map(|x| x.parse::<usize>().unwrap())
+                .collect::<Vec<_>>();
             println!("{:?}", pr);
             let (n, from, to) = (pr[0], pr[1]-1, pr[2]-1);
             move_n_from_x_to_y(&mut stacks, n, from, to);

@@ -1,7 +1,7 @@
 use std::{env, fs};
 
 fn move_n_from_x_to_y(stacks: &mut Vec<Vec<char>>, n: usize, x: usize, y: usize) {
-    let tmp: Vec<char>> = vec![];
+    let mut tmp: Vec<char> = vec![];
     for _i in 0..n {
         if let Some(c) = stacks[x].pop() {
             tmp.push(c);

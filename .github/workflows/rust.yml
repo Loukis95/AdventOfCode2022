@@ -10,7 +10,7 @@ env:
 
 jobs:
 
-  aoc_01:
+  aoc_06:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -23,30 +23,12 @@ jobs:
 
     - name: Build
       run: cargo build
-      working-directory: aoc_01
+      working-directory: aoc_06
     - name: Run
       run: cargo run -- src/input.txt
-      working-directory: aoc_01
+      working-directory: aoc_06
 
-  aoc_01_2:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_01_2
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_01_2
-
-  aoc_02:
+  aoc_06_2:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -59,133 +41,7 @@ jobs:
   
     - name: Build
       run: cargo build
-      working-directory: aoc_02
+      working-directory: aoc_06_2
     - name: Run
       run: cargo run -- src/input.txt
-      working-directory: aoc_02
-
-  aoc_02_2:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_02_2
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_02_2
-
-  aoc_03:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_03
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_03
-
-  aoc_03_2:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_03_2
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_03_2
-
-  aoc_04:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_04
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_04
-
-  aoc_04_2:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_04_2
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_04_2
-
-  aoc_05:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_05
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_05
-
-  aoc_05_2:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-  
-    - name: Build
-      run: cargo build
-      working-directory: aoc_05_2
-    - name: Run
-      run: cargo run -- src/input.txt
-      working-directory: aoc_05_2
+      working-directory: aoc_06_2

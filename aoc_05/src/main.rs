@@ -44,7 +44,11 @@ fn main() {
             let pr = line.split_whitespace()
                 .filter_map(|x| {
                     println!("debug: {}", x);
-                    x.parse::<usize>()
+                    if let Ok(n) = x.parse::<usize>() {
+                        Some(n)
+                    } else {
+                        None
+                    }
                 })
                 .collect::<Vec<_>>();
             println!("{:?}", pr);

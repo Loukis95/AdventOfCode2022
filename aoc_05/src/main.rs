@@ -42,7 +42,10 @@ fn main() {
         .for_each(|line| {
             println!("{}", line);
             let pr = line.split("move from to")
-                .map(|x| x.parse::<usize>().unwrap())
+                .map(|x| {
+                    println!("debug: {}", x);
+                    x.parse::<usize>().unwrap()
+                })
                 .collect::<Vec<_>>();
             println!("{:?}", pr);
             let (n, from, to) = (pr[0], pr[1]-1, pr[2]-1);

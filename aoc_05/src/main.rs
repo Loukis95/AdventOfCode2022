@@ -41,10 +41,10 @@ fn main() {
     program.iter().skip(1)
         .for_each(|line| {
             println!("{}", line);
-            let pr = line.split(["move ", " from ", " to "])
-                .map(|x| {
+            let pr = line.split_whitespace()
+                .filter_map(|x| {
                     println!("debug: {}", x);
-                    x.parse::<usize>().unwrap()
+                    x.parse::<usize>()
                 })
                 .collect::<Vec<_>>();
             println!("{:?}", pr);

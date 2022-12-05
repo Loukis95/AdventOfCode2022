@@ -8,7 +8,7 @@ fn move_n_from_x_to_y(stacks: &mut Vec<Vec<char>>, n: usize, x: usize, y: usize)
         }
     }
     for _i in 0..n {
-        if let Some(c) = tmp[x].pop() {
+        if let Some(c) = tmp.pop() {
             stacks[y].push(c);
         }
     }

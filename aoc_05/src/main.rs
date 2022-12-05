@@ -1,5 +1,4 @@
 use std::{env, fs};
-use regex::Regex;
 
 fn move_n_from_x_to_y(stacks: &mut Vec<Vec<char>>, n: usize, x: usize, y: usize) {
     for _i in 0..n {
@@ -42,10 +41,8 @@ fn main() {
     program.iter().skip(1)
         .for_each(|line| {
             println!("{}", line);
-            let re = Regex::new(r"^move ([0-9]+) from ([0-9]+) to ([0-9]+)").unwrap();
-            re.captures_iter(line).
-            let pr = line.chars().
-            .map(|x| x.parse::<usize>().unwrap()).collect::<Vec<_>>();
+            let pr = line.split("move from to").collect::<Vec<_>>();
+            //.map(|x| x.parse::<usize>().unwrap()).collect::<Vec<_>>();
             println!("{:?}", pr);
             let (n, from, to) = (pr[0], pr[1]-1, pr[2]-1);
             move_n_from_x_to_y(&mut stacks, n, from, to);

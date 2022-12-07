@@ -201,7 +201,7 @@ impl<T> Display for TreeNode<T>
     where T: Display
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/", self.item)?;
+        write!(f, "{}", self.item)?;
         for item in self.children.iter() {
             write!(f, "- {}", (**item).borrow())?;
         }
@@ -240,6 +240,17 @@ impl Index {
     }
 }
 
+impl Display for Index {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_file {
+            writeln!(f, "{} : {}", self.name, self.size)?;
+        } else {
+            writeln!(f, "{}", self.name)?;
+        }
+        Ok(())
+    }
+}
+
 fn main() {
     let args : Vec<_> = env::args().collect();
     let input_path = &args[1];
@@ -248,5 +259,7 @@ fn main() {
     let input : Vec<_> = raw_string.lines().collect();
     
     let root = TreeNode::<Index>::new(Index::new_dir("/"));
-
+    root.borrow_mut().push(Index::new_file("a", 5));
+    root.borrow_mut().push(Index::new_dir("dir/"));
+    print!("{}", (*root).borrow());
 }

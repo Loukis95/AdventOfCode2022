@@ -203,7 +203,8 @@ impl<T> Display for TreeNode<T>
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}/", self.item)?;
         for item in self.children.iter() {
-            write!(f, "- {}", item)?;
+            let borrow = item.borrow();
+            write!(f, "- {}", borrow)?;
         }
         Ok(())
     }

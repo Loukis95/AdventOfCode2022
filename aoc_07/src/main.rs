@@ -210,26 +210,28 @@ impl<T> Display for TreeNode<T>
     }
 }
 
-struct TreeChildrenIterator<T> {
+struct TreeChildrenIterator<'a, T> {
     current: TreeParent<T>,
-    it: Iter<TreeChild<T>>,
+    it: Option<std::slice::Iter<'a, TreeChild<T>>>,
 }
 
-impl<T> TreeChildrenIterator<T> {
+impl<'a, T> TreeChildrenIterator<'a, T> {
     fn new(current: TreeParent<T>) -> Self {
         Self {
-            current
+            current,
+            it: None,
         }
     }
 }
 
-impl<T> Iterator for TreeChildrenIterator<T> {
+impl<'a, T> Iterator for TreeChildrenIterator<'a, T> {
     type Item = TreeChild<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(node) = self.current.upgrade() {
-            let it = (*node).borrow().children.iter();
+            self.it = Some((*node).borrow().children.iter());
         }
+        self.it.
     }
 }
 

@@ -59,12 +59,12 @@ impl Index for File {
 }
 
 impl Directory {
-    fn new(name: &str, parent: Option<Rc<Box<Directory>>>) -> Rc<Box<Self>> {
-        Rc::new(Box::new(Self {
+    fn new(name: &str, parent: Option<Rc<Box<Directory>>>) -> Self {
+        Self {
             name: name.to_string(),
             files: vec![],
             parent,
-        }))
+        }
     }
 
     fn push(&mut self, file: Rc<Box<dyn Index>>) {
@@ -104,11 +104,11 @@ impl DerefMut for Directory {
 }
 
 impl File {
-    fn new(name: &str, size: usize) -> Rc<Box<Self>> {
-        Rc::new(Box::new(Self {
+    fn new(name: &str, size: usize) -> Self {
+        Self {
             name: name.to_string(),
             size,
-        }))
+        }
     }
 }
 
@@ -121,5 +121,5 @@ fn main() {
     
     let mut root = Directory::new("/", None);
     let f1 = File::new("a", 5);
-    root.push(f1);
+    root.push(Rc::new(Box::new(f1)));
 }

@@ -169,7 +169,7 @@ type TreeParent<T> = Weak<RefCell<TreeNode<T>>>;
 type TreeChild<T> = Rc<RefCell<TreeNode<T>>>;
 
 impl<T> TreeNode<T> {
-    fn new(item: T) -> Rc<RefCell<TreeNode<T>>> {
+    fn new(item: T) -> TreeChild<T> {
         let node = Self {
             item,
             children: vec![],
@@ -195,6 +195,7 @@ impl<T> TreeNode<T> {
     fn children(&self) -> &[TreeChild<T>] {
         &self.children
     }
+
 }
 
 impl<T> Display for TreeNode<T>
@@ -203,15 +204,34 @@ impl<T> Display for TreeNode<T>
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.item)?;
         for item in self.children.iter() {
-            write!(f, "- {}", (**item).borrow())?;
+            write!(f, "| {}", (**item).borrow())?;
         }
         Ok(())
     }
 }
 
+struct TreeChildrenIterator<T> {
+    current: TreeParent<T>,
+    it: Iter<TreeChild<T>>,
+}
 
+impl<T> TreeChildrenIterator<T> {
+    fn new(current: TreeParent<T>) -> Self {
+        Self {
+            current
+        }
+    }
+}
 
+impl<T> Iterator for TreeChildrenIterator<T> {
+    type Item = TreeChild<T>;
 
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.current.upgrade() {
+            let it = (*node).borrow().children.iter();
+        }
+    }
+}
 
 
 
@@ -261,5 +281,17 @@ fn main() {
     let root = TreeNode::<Index>::new(Index::new_dir("/"));
     root.borrow_mut().push(Index::new_file("a", 5));
     root.borrow_mut().push(Index::new_dir("dir/"));
+
+    if let Some(dir) = (*root).borrow().children.iter().find(|item| {
+        if (***item).borrow().item.name == "dir/" {
+            true
+        } else {
+            false
+        }
+    })
+    {
+        dir.borrow_mut().push(Index::new_file("b", 5));
+    }
+
     print!("{}", (*root).borrow());
 }

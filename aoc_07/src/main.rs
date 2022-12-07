@@ -121,5 +121,5 @@ fn main() {
     
     let mut root = Directory::new("/", None);
     let f1 = File::new("a", 5);
-    root.push(Rc::new(Box::new(f1)));
+    root.push(Rc::new(Box::new(f1) as Box<dyn Index>));
 }

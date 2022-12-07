@@ -9,7 +9,7 @@ trait Index {
     fn is_directory(&self) -> bool;
     fn name(&self) -> &str;
     fn size(&self) -> usize;
-    fn set_parent(&mut self, Option<Rc<Box<Directory>>>);
+    fn set_parent(&mut self, parent: Option<Rc<Box<Directory>>>);
 }
 
 struct Directory {

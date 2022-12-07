@@ -73,7 +73,7 @@ impl Directory {
         Self {
             name: name.to_string(),
             files: vec![],
-            parent,
+            parent: None,
         }
     }
 
@@ -118,6 +118,7 @@ impl File {
         Self {
             name: name.to_string(),
             size,
+            parent: None,
         }
     }
 }

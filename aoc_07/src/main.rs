@@ -3,6 +3,7 @@ use std::cell::{RefCell, RefMut};
 use std::ops::{Deref, DerefMut};
 use std::{env, fs};
 use std::rc::Rc;
+use std::any::Any;
 
 trait Index {
     fn is_file(&self) -> bool;
@@ -10,6 +11,7 @@ trait Index {
     fn name(&self) -> &str;
     fn size(&self) -> usize;
     fn set_parent(&mut self, parent: Option<Rc<Box<Directory>>>);
+    fn as_any(&self) -> &dyn Any;
 }
 
 struct Directory {
@@ -44,6 +46,10 @@ impl Index for Directory {
     fn set_parent(&mut self, parent: Option<Rc<Box<Directory>>>) {
         self.parent = parent
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl Index for File {
@@ -66,6 +72,10 @@ impl Index for File {
     fn set_parent(&mut self, parent: Option<Rc<Box<Directory>>>) {
         self.parent = parent
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl Directory {
@@ -77,7 +87,8 @@ impl Directory {
         }
     }
 
-    fn push(&mut self, file: Rc<Box<dyn Index>>) {
+    fn push(&mut self: Rc<Box<Self>>, file: Rc<Box<dyn Index>>) {
+        file.set_parent(Some(self.clone()));
         self.files.push(file);
     }
 

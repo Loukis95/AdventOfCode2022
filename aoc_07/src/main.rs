@@ -158,7 +158,7 @@ impl<T> DoubleEndedIterator for ListIterator<T> {
 struct TreeNode<T> {
     item: T,
     children: Vec<TreeLink<T>>,
-    prev: TreeLink<T>,
+    parent: TreeLink<T>,
 }
 
 impl<T> TreeNode<T> {
@@ -166,96 +166,16 @@ impl<T> TreeNode<T> {
         Self {
             item,
             children: vec![],
-            prev: None,
+            parent: None,
         }
     }
 }
 
 type TreeLink<T> = Option<Rc<RefCell<TreeNode<T>>>>;
 
-#[derive(Default)]
-pub struct Tree<T> {
-    root: TreeLink<T>,
-    size: usize,
+impl<T> TreeNode {
+
 }
-
-impl<T> Tree<T> {
-    pub fn new() -> Self {
-        Self {
-            root: None,
-            size: 0,
-        }
-    }
-
-    pub fn push_back(&mut self, item: T) {
-        let node = Rc::new(RefCell::new(TreeNode::new(item)));
-        if let Some(prev_tail) = self.tail.take() {
-            prev_tail.borrow_mut().next = Some(Rc::clone(&node));
-            node.borrow_mut().prev = Some(prev_tail);
-            self.tail = Some(node);
-            self.size += 1;
-        } else {
-            self.head = Some(Rc::clone(&node));
-            self.tail = Some(node);
-            self.size = 1;
-        }
-    }
-
-    pub fn push_front(&mut self, item: T) {
-        let node = Rc::new(RefCell::new(ListNode::new(item)));
-        if let Some(prev_head) = self.head.take() {
-            prev_head.borrow_mut().prev = Some(Rc::clone(&node));
-            node.borrow_mut().next = Some(prev_head);
-            self.head = Some(node);
-            self.size += 1;
-        } else {
-            self.head = Some(Rc::clone(&node));
-            self.tail = Some(node);
-            self.size = 1;
-        }
-    }
-
-    pub fn pop_back(&mut self) -> Option<T> {
-        self.tail.take().map(|prev_tail| {
-            self.size -= 1;
-            match prev_tail.borrow_mut().prev.take() {
-                Some(node) => {
-                    node.borrow_mut().next = None;
-                    self.tail = Some(node);
-                }
-                None => {
-                    self.head.take();
-                }
-            }
-            Rc::try_unwrap(prev_tail).ok().unwrap().into_inner().item
-        })
-    }
-
-    pub fn pop_front(&mut self) -> Option<T> {
-        self.head.take().map(|prev_head| {
-            self.size -= 1;
-            match prev_head.borrow_mut().next.take() {
-                Some(node) => {
-                    node.borrow_mut().prev = None;
-                    self.head = Some(node);
-                }
-                None => {
-                    self.tail.take();
-                }
-            }
-            Rc::try_unwrap(prev_head).ok().unwrap().into_inner().item
-        })
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn len(&self) -> usize {
-        self.size
-    }
-}
-
 
 
 

@@ -9,6 +9,7 @@ trait Index {
     fn is_directory(&self) -> bool;
     fn name(&self) -> &str;
     fn size(&self) -> usize;
+    fn set_parent(&mut self, Option<Rc<Box<Directory>>>);
 }
 
 struct Directory {
@@ -20,6 +21,7 @@ struct Directory {
 struct File {
     name: String,
     size: usize,
+    parent: Option<Rc<Box<Directory>>>,
 }
 
 impl Index for Directory {
@@ -37,6 +39,10 @@ impl Index for Directory {
 
     fn size(&self) -> usize {
         self.files.iter().map(|index| index.size()).sum()
+    }
+
+    fn set_parent(&mut self, parent: Option<Rc<Box<Directory>>>) {
+        self.parent = parent
     }
 }
 
@@ -56,10 +62,14 @@ impl Index for File {
     fn size(&self) -> usize {
         self.size
     }
+
+    fn set_parent(&mut self, parent: Option<Rc<Box<Directory>>>) {
+        self.parent = parent
+    }
 }
 
 impl Directory {
-    fn new(name: &str, parent: Option<Rc<Box<Directory>>>) -> Self {
+    fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
             files: vec![],
@@ -119,7 +129,11 @@ fn main() {
     let raw_string = String::from_utf8_lossy(&raw_input);
     let input : Vec<_> = raw_string.lines().collect();
     
-    let mut root = Directory::new("/", None);
+    let mut root = Directory::new("/");
     let f1 = File::new("a", 5);
     root.push(Rc::new(Box::new(f1));
+    let mut d1 = Directory::new("b/");
+    let f2 = File::new("a", 5);
+    d1.push(Rc::new(Box::new(f2));
+    root.push(Rc::new(Box::new(d1));
 }

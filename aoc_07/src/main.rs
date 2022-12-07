@@ -131,9 +131,9 @@ fn main() {
     
     let mut root = Directory::new("/");
     let f1 = File::new("a", 5);
-    root.push(Rc::new(Box::new(f1));
+    root.push(Rc::new(Box::new(f1)));
     let mut d1 = Directory::new("b/");
     let f2 = File::new("a", 5);
-    d1.push(Rc::new(Box::new(f2));
-    root.push(Rc::new(Box::new(d1));
+    d1.push(Rc::new(Box::new(f2)));
+    root.push(Rc::new(Box::new(d1)));
 }

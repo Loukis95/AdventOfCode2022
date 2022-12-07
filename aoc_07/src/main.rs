@@ -87,7 +87,7 @@ impl Directory {
         }
     }
 
-    fn push(&mut self: Rc<Box<Self>>, file: Rc<Box<dyn Index>>) {
+    fn push(self: &mut Rc<Box<Self>>, file: Rc<Box<dyn Index>>) {
         file.set_parent(Some(self.clone()));
         self.files.push(file);
     }

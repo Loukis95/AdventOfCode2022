@@ -1,4 +1,7 @@
+use std::borrow::Borrow;
+use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
+use std::rc::Weak;
 use std::{env, fs};
 use std::any::Any;
 
@@ -157,24 +160,53 @@ impl<T> DoubleEndedIterator for ListIterator<T> {
 
 struct TreeNode<T> {
     item: T,
-    children: Vec<TreeLink<T>>,
-    parent: TreeLink<T>,
+    children: Vec<TreeChild<T>>,
+    parent: TreeParent<T>,
+    this: TreeParent<T>,
 }
 
+type TreeParent<T> = Weak<RefCell<TreeNode<T>>>;
+type TreeChild<T> = Rc<RefCell<TreeNode<T>>>;
+
 impl<T> TreeNode<T> {
-    fn new(item: T) -> Self {
-        Self {
+    fn new(item: T) -> Rc<RefCell<TreeNode<T>>> {
+        let node = Self {
             item,
             children: vec![],
-            parent: None,
-        }
+            parent: TreeParent::new(),
+            this: TreeParent::new(),
+        };
+        let rc_node = Rc::new(RefCell::new(node));
+        let weak_link = Rc::downgrade(&rc_node);
+        rc_node.borrow_mut().this = weak_link;
+        rc_node
+    }
+
+    fn push(&mut self, item: T) {
+        let child = TreeNode::new(item);
+        child.borrow_mut().parent = self.this.clone();
+        self.children.push(child);
+    }
+
+    fn parent(&self) -> TreeParent<T> {
+        self.parent.clone()
+    }
+
+    fn children(&self) -> &[TreeChild<T>] {
+        &self.children
     }
 }
 
-type TreeLink<T> = Option<Rc<RefCell<TreeNode<T>>>>;
-
-impl<T> TreeNode {
-
+impl<T> Display for TreeNode<T>
+    where T: Display
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/", self.item)?;
+        for item in self.children.iter() {
+            write!(f, "- {}", item)?;
+        }
+        Ok(())
+    }
 }
 
 
@@ -182,6 +214,31 @@ impl<T> TreeNode {
 
 
 
+
+
+struct Index {
+    name: String,
+    size: usize,
+    is_file: bool
+}
+
+impl Index {
+    fn new_file(name: &str, size: usize) -> Self {
+        Self {
+            name: name.to_string(),
+            size,
+            is_file: true,
+        }
+    }
+
+    fn new_dir(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            size: 0,
+            is_file: false,
+        }
+    }
+}
 
 fn main() {
     let args : Vec<_> = env::args().collect();
@@ -190,11 +247,6 @@ fn main() {
     let raw_string = String::from_utf8_lossy(&raw_input);
     let input : Vec<_> = raw_string.lines().collect();
     
-    // let mut root = Rc::new(Box::new(Directory::new("/")));
-    // let f1 = File::new("a", 5);
-    // root.push(Rc::new(Box::new(f1)));
-    // let mut d1 = Directory::new("b/");
-    // let f2 = File::new("a", 5);
-    // d1.push(Rc::new(Box::new(f2)));
-    // root.push(Rc::new(Box::new(d1)));
+    let root = TreeNode::<Index>::new(Index::new_dir("/"));
+
 }

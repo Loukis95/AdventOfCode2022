@@ -196,11 +196,8 @@ impl<T> TreeNode<T> {
         &self.children
     }
 
-    fn iter<'a>(&'a self) -> TreeChildrenIterator<'a, T> {
-        TreeChildrenIterator {
-            current: self.this.clone(),
-            it: None,
-        }
+    fn iter<'a>(&'a self) -> BreadthFirstSearchIterator<'a, T> {
+        BreadthFirstSearchIterator::new(self.this.clone())
     }
 }
 
@@ -216,36 +213,25 @@ impl<T> Display for TreeNode<T>
     }
 }
 
-struct TreeChildrenIterator<'a, T> {
-    current: TreeParent<T>,
+struct BreadthFirstSearchIterator<'a, T> {
+    current: Option<TreeChild<T>>,
     it: Option<std::slice::Iter<'a, TreeChild<T>>>,
 }
 
-impl<'a, T> TreeChildrenIterator<'a, T> {
-    fn new(current: TreeParent<T>) -> Self {
+impl<'a, T> BreadthFirstSearchIterator<'a, T> {
+    fn new(root: TreeParent<T>) -> Self {
         Self {
-            current,
+            current: root.upgrade().or(None),
             it: None,
         }
     }
 }
 
-impl<'a, T> Iterator for TreeChildrenIterator<'a, T> {
-    type Item = TreeChild<T>;
+impl<'a, T> Iterator for BreadthFirstSearchIterator<'a, T> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.it.is_none() {
-            if let Some(node) = self.current.upgrade() {
-                self.it = Some((*node).borrow().children.iter());
-            } else {
-                return None;
-            }
-        }
-        if let Some(it) = &mut self.it {
-            return it.next().cloned();
-        } else {
-            return None;
-        }
+        if self.
     }
 }
 

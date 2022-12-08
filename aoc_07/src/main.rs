@@ -1,5 +1,8 @@
 use std::borrow::Borrow;
+use std::cell::Ref;
+use std::collections::VecDeque;
 use std::fmt::Display;
+use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::rc::Weak;
 use std::{env, fs};
@@ -196,7 +199,7 @@ impl<T> TreeNode<T> {
         &self.children
     }
 
-    fn iter<'a>(&'a self) -> BreadthFirstSearchIterator<'a, T> {
+    fn iter(&self) -> BreadthFirstSearchIterator<T> {
         BreadthFirstSearchIterator::new(self.this.clone())
     }
 }
@@ -214,24 +217,36 @@ impl<T> Display for TreeNode<T>
 }
 
 struct BreadthFirstSearchIterator<'a, T> {
-    current: Option<TreeChild<T>>,
-    it: Option<std::slice::Iter<'a, TreeChild<T>>>,
+    stack: VecDeque<TreeChild<T>>,
+    _marker: PhantomData<&'a T>,
 }
 
 impl<'a, T> BreadthFirstSearchIterator<'a, T> {
     fn new(root: TreeParent<T>) -> Self {
+        let mut stack = VecDeque::<TreeChild<T>>::new();
+        if let Some(r) = root.upgrade() {
+            stack.push_back(r);
+        }
         Self {
-            current: root.upgrade().or(None),
-            it: None,
+            stack: stack,
+            _marker: PhantomData,
         }
     }
 }
 
 impl<'a, T> Iterator for BreadthFirstSearchIterator<'a, T> {
-    type Item = T;
+    type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.
+        if let Some(rc_node) = self.stack.pop_front() {
+            for child in (*rc_node).borrow().children() {
+                self.stack.push_back(child.clone());
+            }
+            let item: *const T = &(*(*rc_node).borrow()).item;
+            unsafe { return item.as_ref(); }
+        } else {
+            None
+        }
     }
 }
 
@@ -279,21 +294,38 @@ fn main() {
     let raw_input = fs::read(input_path).unwrap();
     let raw_string = String::from_utf8_lossy(&raw_input);
     let input : Vec<_> = raw_string.lines().collect();
-    
-    let root = TreeNode::<Index>::new(Index::new_dir("/"));
-    root.borrow_mut().push(Index::new_file("a", 5));
-    root.borrow_mut().push(Index::new_dir("dir/"));
 
-    if let Some(dir) = (*root).borrow().children.iter().find(|item| {
-        if (***item).borrow().item.name == "dir/" {
-            true
-        } else {
-            false
+    for line in input.iter() {
+        let is_command = false;
+        let mut token_iterator = line.split_whitespace();
+        match token_iterator.next() {
+            None => continue,
+            Some(token) => {
+                if token == "$" {
+                    is_command = true;
+                }
+            },
         }
-    })
-    {
-        dir.borrow_mut().push(Index::new_file("b", 5));
     }
+    
+    // let root = TreeNode::<Index>::new(Index::new_dir("/"));
+    // root.borrow_mut().push(Index::new_file("a", 5));
+    // root.borrow_mut().push(Index::new_dir("dir/"));
 
-    print!("{}", (*root).borrow());
+    // if let Some(dir) = (*root).borrow().children.iter().find(|item| {
+    //     if (***item).borrow().item.name == "dir/" {
+    //         true
+    //     } else {
+    //         false
+    //     }
+    // })
+    // {
+    //     dir.borrow_mut().push(Index::new_file("b", 5));
+    // }
+
+    //print!("{}", (*root).borrow());
+
+    // for item in (*root).borrow().iter() {
+    //     println!("{}", item);
+    // }
 }

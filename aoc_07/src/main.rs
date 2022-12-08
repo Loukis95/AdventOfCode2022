@@ -196,8 +196,11 @@ impl<T> TreeNode<T> {
         &self.children
     }
 
-    fn iter(&self) -> TreeChildrenIterator<'a, T> {
-        
+    fn iter<'a>(&'a self) -> TreeChildrenIterator<'a, T> {
+        TreeChildrenIterator {
+            current: self.this.clone(),
+            it: None,
+        }
     }
 }
 
@@ -238,8 +241,10 @@ impl<'a, T> Iterator for TreeChildrenIterator<'a, T> {
                 return None;
             }
         }
-        if let Some(it) = self.it {
-            return it.next();
+        if let Some(it) = &mut self.it {
+            return it.next().cloned();
+        } else {
+            return None;
         }
     }
 }

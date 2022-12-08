@@ -196,6 +196,9 @@ impl<T> TreeNode<T> {
         &self.children
     }
 
+    fn iter(&self) -> TreeChildrenIterator<'a, T> {
+        
+    }
 }
 
 impl<T> Display for TreeNode<T>
@@ -228,10 +231,16 @@ impl<'a, T> Iterator for TreeChildrenIterator<'a, T> {
     type Item = TreeChild<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(node) = self.current.upgrade() {
-            self.it = Some((*node).borrow().children.iter());
+        if self.it.is_none() {
+            if let Some(node) = self.current.upgrade() {
+                self.it = Some((*node).borrow().children.iter());
+            } else {
+                return None;
+            }
         }
-        self.it.
+        if let Some(it) = self.it {
+            return it.next();
+        }
     }
 }
 

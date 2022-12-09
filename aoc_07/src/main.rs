@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use std::fmt::Display;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::path::Path;
 use std::rc::Weak;
 use std::{env, fs};
 use std::any::Any;
@@ -163,6 +164,7 @@ impl<T> DoubleEndedIterator for ListIterator<T> {
 
 struct TreeNode<T> {
     item: T,
+    nested_level: usize,
     children: Vec<TreeChild<T>>,
     parent: TreeParent<T>,
     this: TreeParent<T>,
@@ -175,6 +177,7 @@ impl<T> TreeNode<T> {
     fn new(item: T) -> TreeChild<T> {
         let node = Self {
             item,
+            nested_level: 0,
             children: vec![],
             parent: TreeParent::new(),
             this: TreeParent::new(),
@@ -188,6 +191,7 @@ impl<T> TreeNode<T> {
     fn push(&mut self, item: T) {
         let child = TreeNode::new(item);
         child.borrow_mut().parent = self.this.clone();
+        child.borrow_mut().nested_level = self.nested_level+1;
         self.children.push(child);
     }
 
@@ -210,7 +214,8 @@ impl<T> Display for TreeNode<T>
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.item)?;
         for item in self.children.iter() {
-            write!(f, "| {}", (**item).borrow())?;
+            for _i in 0..(**item).borrow().nested_level { write!(f, "| ").unwrap(); }
+            write!(f, "{}", (**item).borrow())?;
         }
         Ok(())
     }
@@ -253,9 +258,12 @@ impl<'a, T> Iterator for BreadthFirstSearchIterator<'a, T> {
 
 
 
+
+
+
 struct Index {
     name: String,
-    size: usize,
+    size: Option<usize>,
     is_file: bool
 }
 
@@ -263,7 +271,7 @@ impl Index {
     fn new_file(name: &str, size: usize) -> Self {
         Self {
             name: name.to_string(),
-            size,
+            size: Some(size),
             is_file: true,
         }
     }
@@ -271,7 +279,7 @@ impl Index {
     fn new_dir(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            size: 0,
+            size: None,
             is_file: false,
         }
     }
@@ -280,13 +288,28 @@ impl Index {
 impl Display for Index {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_file {
-            writeln!(f, "{} : {}", self.name, self.size)?;
+            writeln!(f, "{} : {}", self.name, self.size.unwrap_or(0))?;
         } else {
-            writeln!(f, "{}", self.name)?;
+            writeln!(f, "{}/", self.name)?;
         }
         Ok(())
     }
 }
+
+
+
+
+fn compute_size(root: TreeChild<Index>) -> usize {
+    let mut sum: usize = (*root).borrow().item.size.unwrap_or(0);
+    for child in (*root).borrow().children() {
+        sum += compute_size(child.clone());
+    }
+    if !(*root).borrow().item.is_file {
+        (*root).borrow_mut().item.size = Some(sum);
+    }
+    sum
+}
+
 
 fn main() {
     let args : Vec<_> = env::args().collect();
@@ -295,37 +318,89 @@ fn main() {
     let raw_string = String::from_utf8_lossy(&raw_input);
     let input : Vec<_> = raw_string.lines().collect();
 
-    for line in input.iter() {
-        let is_command = false;
-        let mut token_iterator = line.split_whitespace();
-        match token_iterator.next() {
-            None => continue,
-            Some(token) => {
-                if token == "$" {
-                    is_command = true;
-                }
-            },
-        }
-    }
+    let mut root = TreeNode::<Index>::new(Index::new_dir(""));
+    let mut current = root.clone();
+    let mut program = input.iter().skip(1);
     
-    // let root = TreeNode::<Index>::new(Index::new_dir("/"));
-    // root.borrow_mut().push(Index::new_file("a", 5));
-    // root.borrow_mut().push(Index::new_dir("dir/"));
+    let mut line_opt = program.next();
+    if line_opt.is_none() { panic!("Program is empty"); }
+    let mut line = line_opt.unwrap();
+    let mut is_command = line.starts_with("$");
+    loop {
+        if line_opt.is_none() { break; }
+        line = line_opt.unwrap();
+        is_command = line.starts_with("$");
+        if is_command {
+            let mut command_line = line.split_whitespace().skip(1);
+            if let Some(command) = command_line.next() {
+                match command {
+                    "cd" => {
+                        let path = Path::new(command_line.next().unwrap());
+                        for component in path.iter() {
+                            match component.to_str().unwrap() {
+                                "/" => {
+                                    current = root.clone();
+                                },
+                                ".." => {
+                                    let tmp = (*current).borrow().parent.upgrade().unwrap().clone();
+                                    current = tmp;
+                                },
+                                name => {
+                                    let mut tmp:Option<TreeChild<Index>> = None;
+                                    for child in (*current).borrow().children() {
+                                        if (**child).borrow().item.name == name {
+                                            tmp = Some(child.clone());
+                                            break;
+                                        }
+                                    }
+                                    if tmp.is_some() { current = tmp.unwrap(); }
+                                    else {
+                                        panic!("Path not found");
+                                    }
+                                },
+                            }
+                        }
+                    },
+                    "ls" => {
+                        loop {
+                            line_opt = program.next();
+                            if line_opt.is_none() { break; }
+                            line = line_opt.unwrap();
+                            is_command = line.starts_with("$");
+                            if is_command { break }
+                            else {
+                                if line.starts_with("dir") {
+                                    current.borrow_mut().push(Index::new_dir(line.split_whitespace().nth(1).unwrap()));
+                                } else {
+                                    let size = line.split_whitespace().nth(0).unwrap().parse::<usize>().unwrap();
+                                    let name = line.split_whitespace().nth(1).unwrap();
+                                    current.borrow_mut().push(Index::new_file(name, size));
+                                }
+                            }
+                        }
+                        continue;
+                    },
+                    _ => panic!("unknown command"),
+                }
+            } else {
+                panic!("Command is empty !");
+            }
+        }
+        line_opt = program.next();
+    }
 
-    // if let Some(dir) = (*root).borrow().children.iter().find(|item| {
-    //     if (***item).borrow().item.name == "dir/" {
-    //         true
-    //     } else {
-    //         false
-    //     }
-    // })
-    // {
-    //     dir.borrow_mut().push(Index::new_file("b", 5));
-    // }
+    println!("{}", (*root).borrow());
 
-    //print!("{}", (*root).borrow());
 
-    // for item in (*root).borrow().iter() {
-    //     println!("{}", item);
-    // }
+
+    compute_size(root.clone());
+
+
+
+    let sum: usize = (*root).borrow().iter()
+        .filter(|item| !item.is_file && item.size.unwrap_or(0) <= 100000)
+        .map(|item| item.size.unwrap_or(0))
+        .sum();
+
+    println!("Sum: {}", sum);
 }

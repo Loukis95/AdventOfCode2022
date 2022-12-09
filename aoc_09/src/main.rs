@@ -62,7 +62,7 @@ fn main() {
 
     for line in input.iter() {
         println!("==== {} ====", line);
-        let direction = line.split_whitespace().first().unwrap();
+        let direction = line.split_whitespace().nth(0).unwrap();
         let repeat = line.split_whitespace().nth(1).unwrap().parse::<usize>().unwrap();
         for _i in 0..repeat {
             // Move head

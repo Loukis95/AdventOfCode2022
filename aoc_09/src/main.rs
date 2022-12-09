@@ -37,6 +37,7 @@ fn print_state(tail: &Coord, head: &Coord, positions: &[Coord], min_x: isize, mi
         }
         println!("");
     }
+    println!("");
 }
 
 fn main() {
@@ -60,6 +61,7 @@ fn main() {
     print_state(&tail, &head, &positions, min_x, min_y, max_x, max_y);
 
     for line in input.iter() {
+        println!("==== {} ====", line);
         let direction = line.chars().nth(0).unwrap();
         let repeat = line.chars().nth(2).unwrap().to_digit(10).unwrap() as usize;
         for _i in 0..repeat {

@@ -62,15 +62,15 @@ fn main() {
 
     for line in input.iter() {
         println!("==== {} ====", line);
-        let direction = line.chars().nth(0).unwrap();
-        let repeat = line.chars().nth(2).unwrap().to_digit(10).unwrap() as usize;
+        let direction = line.split_whitespace().first().unwrap();
+        let repeat = line.split_whitespace().nth(1).unwrap().parse::<usize>().unwrap();
         for _i in 0..repeat {
             // Move head
             match direction {
-                'R' => head = right(&head),
-                'L' => head = left(&head),
-                'D' => head = down(&head),
-                'U' => head = up(&head),
+                "R" => head = right(&head),
+                "L" => head = left(&head),
+                "D" => head = down(&head),
+                "U" => head = up(&head),
                 _ => panic!("Unsupported direction")
             }
             if head.x > max_x { max_x = head.x; }

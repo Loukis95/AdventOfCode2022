@@ -20,10 +20,10 @@ fn down(coord: &Coord) -> Coord {
 }
 
 fn print_state(tail: &Coord, head: &Coord, positions: &[Coord], min_x: isize, min_y: isize, max_x: isize, max_y: isize) {
-    let shift_x = (min_x * (-1 as isize));
-    let shift_y = (min_y * (-1 as isize));
-    let m = (max_y+shift_y) as usize;
-    let n = (max_x+shift_x) as usize;
+    let shift_x = min_x * (-1 as isize);
+    let shift_y = min_y * (-1 as isize);
+    let m = (max_y+shift_y+1) as usize;
+    let n = (max_x+shift_x+1) as usize;
     let mut grid = vec![vec!['.';n];m];
     for coord in positions {
         grid[(coord.y+shift_y) as usize][(coord.x+shift_x) as usize] = '#';

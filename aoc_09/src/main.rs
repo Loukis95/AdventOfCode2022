@@ -58,7 +58,7 @@ fn main() {
     let mut positions = Vec::<Coord>::new();
     positions.push(tail.clone());
 
-    print_state(&tail, &head, &positions, min_x, min_y, max_x, max_y);
+    // print_state(&tail, &head, &positions, min_x, min_y, max_x, max_y);
 
     for line in input.iter() {
         println!("==== {} ====", line);
@@ -99,7 +99,7 @@ fn main() {
                 positions.push(tail.clone());
             }
 
-            print_state(&tail, &head, &positions, min_x, min_y, max_x, max_y);
+            // print_state(&tail, &head, &positions, min_x, min_y, max_x, max_y);
         }
     }
 

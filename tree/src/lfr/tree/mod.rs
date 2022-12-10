@@ -2,6 +2,8 @@ use std::collections::VecDeque;
 use std::fmt::Display;
 use std::marker::PhantomData;
 
+use self::internal::TreeNode;
+
 mod internal {
 
     use std::rc::{Weak, Rc};
@@ -172,20 +174,18 @@ where T: Display
 }
 
 pub struct ChildrenNodesIter<'a, T> {
-    list: VecDeque<Tree<T>>,
-    _marker: PhantomData<&'a T>,
+    iterator: std::slice::Iter<'a, internal::RcTreeNode<T>>,
 }
 
 impl<'a, T> ChildrenNodesIter<'a, T> {
     fn new(root: internal::RcTreeNode<T>) -> Self {
-        let list: VecDeque<Tree<T>> = (*root).borrow()
-            .children()
-            .iter()
-            .map(|node| Tree{node: node.clone()})
-            .collect();
+        let node_ptr: *const TreeNode<T> = (*root).as_ptr();
+        let iterator = unsafe {
+            let node = node_ptr.as_ref().unwrap();
+            node.children().iter()
+        };
         Self {
-            list,
-            _marker: PhantomData,
+            iterator,
         }
     }
 }
@@ -194,7 +194,21 @@ impl<'a, T> Iterator for ChildrenNodesIter<'a, T> {
     type Item = Tree<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.list.pop_front()
+        if let Some(node) = self.iterator.next() {
+            Some(Tree{ node: node.clone() })
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for ChildrenNodesIter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.iterator.next_back() {
+            Some(Tree{ node: node.clone() })
+        } else {
+            None
+        }
     }
 }
 

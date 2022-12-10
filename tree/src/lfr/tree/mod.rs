@@ -213,20 +213,19 @@ impl<'a, T> DoubleEndedIterator for ChildrenNodesIter<'a, T> {
 }
 
 pub struct ParentNodesIter<'a, T> {
-    list: VecDeque<Tree<T>>,
+    next: Option<internal::RcTreeNode<T>>,
     _marker: PhantomData<&'a T>,
 }
 
 impl<'a, T> ParentNodesIter<'a, T> {
     fn new(root: internal::RcTreeNode<T>) -> Self {
-        let mut list = VecDeque::<Tree<T>>::new();
-        let mut current = (*root).borrow().parent().upgrade();
-        while let Some(parent) = current {
-            current = (*parent).borrow().parent().upgrade();
-            list.push_back(Tree{ node: parent });
-        }
+        let node_ptr: *const TreeNode<T> = (*root).as_ptr();
+        let parent = unsafe {
+            let node = node_ptr.as_ref().unwrap();
+            node.parent().upgrade()
+        };
         Self {
-            list,
+            next: parent,
             _marker: PhantomData,
         }
     }
@@ -236,7 +235,17 @@ impl<'a, T> Iterator for ParentNodesIter<'a, T> {
     type Item = Tree<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.list.pop_front()
+        if let Some(node) = &self.next {
+            let node_ptr: *const TreeNode<T> = (**node).as_ptr();
+            let ret = Some(Tree { node: node.clone() } );
+            self.next = unsafe {
+                let node = node_ptr.as_ref().unwrap();
+                node.parent().upgrade()
+            };
+            return ret;
+        } else {
+            None
+        }
     }
 }
 

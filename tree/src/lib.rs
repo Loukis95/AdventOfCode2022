@@ -1,9 +1,9 @@
 pub mod lfr;
-use lfr::tree::{Tree};
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lfr::tree::{Tree};
 
     #[test]
     fn tree_test() {

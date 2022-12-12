@@ -1,5 +1,10 @@
 use std::{env, fs, cmp, cmp::Reverse, collections::BinaryHeap};
 
+struct Position {
+    x: usize,
+    y: usize,
+}
+
 struct Node {
     x:usize,
     y:usize,
@@ -35,12 +40,18 @@ impl Ord for Node {
     }
 }
 
-fn cost(x:usize, y:usize, world:&Vec<usize>, m:usize, n:usize) -> usize {
-    world[y*m+x]
+fn cost(x:usize, y:usize, world:&[Vec<usize>], from_x:usize, from_y:usize) -> usize {
+    let value = world[from_y][from_x];
+    let new_value = world[y][x];
+    if usize::abs_diff(new_value, value) > 1 {
+        return usize::MAX;
+    } else {
+        return 1;
+    }
 }
 
-fn hcost(x:usize, y:usize, world:&Vec<usize>, m:usize, n:usize) -> usize {
-    cost(x, y, world, m, n)
+fn hcost(x:usize, y:usize, world:&[Vec<usize>], from_x:usize, from_y:usize) -> usize {
+    cost(x, y, world, from_x, from_y)
 }
 
 fn main() {
@@ -53,13 +64,28 @@ fn main() {
     let n = input.len();
     let m = input[0].len();
 
-    let world : Vec<_> = input.iter()
-        .flat_map(|line| {
-            line.chars().map(|c| usize::try_from(c.to_digit(10).unwrap()).unwrap()).collect::<Vec<_>>()
+    let mut start_position = Position{x:0, y:0};
+
+    let world : Vec<Vec<_>> = input.iter()
+        .enumerate()
+        .map(|(y, line)| {
+            line.chars()
+            .enumerate()
+            .map(|(x, mut c)| {
+                if c == 'S' {
+                    c = 'a';
+                }
+                else if c == 'E' {
+                    start_position = Position{x, y};
+                    c = 'z';
+                }
+                let ret: usize = c as u32 as usize - 'a' as u32 as usize;
+                ret
+            }).collect::<Vec<_>>()
         })
         .collect();
 
-    let start = Node::new(0, 0, 0, 0);
+    let start = Node::new(start_position.x, start_position.y, 0, 0);
     
     let mut to_visit = BinaryHeap::<Reverse<Node>>::new();
     let mut visited = Vec::<(usize,usize,usize)>::new();
@@ -69,49 +95,49 @@ fn main() {
     to_visit.push(Reverse(start));
     while !found {
         let Reverse(current) = to_visit.pop().unwrap();
-        visited.push((current.x, current.y, current.hcost));
-        if current.x == m-1 && current.y == n-1 {
+        visited.push((current.x, current.y, current.cost));
+        if world[current.y][current.x] == 0 {
             found = true;
             path_cost = current.cost;
         }
         else
         {
             if current.x > 0 {
-                let cost = cost(current.x-1, current.y, &world, m, n);
-                let hcost = hcost(current.x-1, current.y, &world, m, n);
-                let new_node = Node::new(current.x-1, current.y, current.cost+cost, current.hcost+hcost);
+                let cost = cost(current.x-1, current.y, &world, current.x, current.y);
+                let hcost = hcost(current.x-1, current.y, &world, current.x, current.y);
+                let new_node = Node::new(current.x-1, current.y, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
                 if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.hcost >= node.2)
+                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
                 {
                     to_visit.push(Reverse(new_node));
                 }
             }
             if current.x < m-1 {
-                let cost = cost(current.x+1, current.y, &world, m, n);
-                let hcost = hcost(current.x+1, current.y, &world, m, n);
-                let new_node = Node::new(current.x+1, current.y, current.cost+cost, current.hcost+hcost);
+                let cost = cost(current.x+1, current.y, &world, current.x, current.y);
+                let hcost = hcost(current.x+1, current.y, &world, current.x, current.y);
+                let new_node = Node::new(current.x+1, current.y, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
                 if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.hcost >= node.2)
+                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
                 {
                     to_visit.push(Reverse(new_node));
                 }
             }
             if current.y > 0 {
-                let cost = cost(current.x, current.y-1, &world, m, n);
-                let hcost = hcost(current.x, current.y-1, &world, m, n);
-                let new_node = Node::new(current.x, current.y-1, current.cost+cost, current.hcost+hcost);
+                let cost = cost(current.x, current.y-1, &world, current.x, current.y);
+                let hcost = hcost(current.x, current.y-1, &world, current.x, current.y);
+                let new_node = Node::new(current.x, current.y-1, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
                 if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.hcost >= node.2)
+                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
                 {
                     to_visit.push(Reverse(new_node));
                 }
             }
             if current.y < n-1 {
-                let cost = cost(current.x, current.y+1, &world, m, n);
-                let hcost = hcost(current.x, current.y+1, &world, m, n);
-                let new_node = Node::new(current.x, current.y+1, current.cost+cost, current.hcost+hcost);
+                let cost = cost(current.x, current.y+1, &world, current.x, current.y);
+                let hcost = hcost(current.x, current.y+1, &world, current.x, current.y);
+                let new_node = Node::new(current.x, current.y+1, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
                 if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.hcost >= node.2)
+                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
                 {
                     to_visit.push(Reverse(new_node));
                 }

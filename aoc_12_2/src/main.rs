@@ -41,9 +41,9 @@ impl Ord for Node {
 }
 
 fn cost(x:usize, y:usize, world:&[Vec<usize>], from_x:usize, from_y:usize) -> usize {
-    let value = world[from_y][from_x];
-    let new_value = world[y][x];
-    if usize::abs_diff(new_value, value) > 1 {
+    let value = world[y][x];
+    let new_value = world[from_y][from_x];
+    if new_value > value+1 {
         return usize::MAX;
     } else {
         return 1;
@@ -97,6 +97,7 @@ fn main() {
         let Reverse(current) = to_visit.pop().unwrap();
         visited.push((current.x, current.y, current.cost));
         if world[current.y][current.x] == 0 {
+            println!("x: {} y: {}", current.x, current.y);
             found = true;
             path_cost = current.cost;
         }

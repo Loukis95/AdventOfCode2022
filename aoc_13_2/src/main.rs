@@ -1,57 +1,106 @@
-use std::{env, fs, cmp, cmp::Reverse, collections::BinaryHeap};
+use std::{env, fs, str::FromStr};
 
-struct Position {
-    x: usize,
-    y: usize,
+#[derive(PartialEq, Eq, Debug)]
+enum Element {
+    Integer(usize),
+    List(Vec<Element>),
 }
 
-struct Node {
-    x:usize,
-    y:usize,
-    cost:usize,
-    hcost:usize,
+impl Element {
+
+    #[inline]
+    pub const fn is_integer(&self) -> bool {
+        matches!(*self, Element::Integer(_))
+    }
+
+    #[inline]
+    pub const fn is_list(&self) -> bool {
+        matches!(*self, Element::List(_))
+    }
 }
 
-impl Node {
-    fn new(x:usize, y:usize, cost:usize, hcost:usize) -> Self {
-        Self {
-            x, y, cost, hcost,
+impl PartialOrd for Element {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if let Element::Integer(a) = self {
+            if let Element::Integer(b) = other {
+                return a.partial_cmp(b)
+            } else {
+                let mut list = Vec::<Element>::new();
+                list.push(Element::Integer(*a));
+                let list_a = Element::List(list);
+                return list_a.partial_cmp(other)
+            }
+        } else {
+            if let Element::Integer(b) = other {
+                let mut list = Vec::<Element>::new();
+                list.push(Element::Integer(*b));
+                let list_b = Element::List(list);
+                return self.partial_cmp(&list_b)
+            } else {
+                if let Element::List(list_a) = self {
+                    if let Element::List(list_b) = other {
+                        let result = list_a.iter().partial_cmp(list_b.iter());
+                        // println!("{:?} <=> {:?} => {:?}", list_a, list_b, result);
+                        return result
+                    }
+                    else {
+                        panic!("This should never happen")
+                    }
+                }
+                else {
+                    panic!("This should never happen")
+                }
+            }
         }
     }
 }
 
-impl PartialEq for Node {
-    fn eq(&self, other: &Self) -> bool {
-        self.hcost.eq(&other.hcost)
+impl Ord for Element {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 
-impl Eq for Node {}
+impl FromStr for Element {
+    type Err = ();
 
-impl PartialOrd for Node {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        self.hcost.partial_cmp(&other.hcost)
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // println!("parse: {}", s);
+        let s = s.trim();
+        if let Some(s) = s.strip_prefix("[") {
+            let mut list = Vec::<Element>::new();
+            let mut nesting_level: usize = 0;
+            let mut rest = s;
+            while let Some((idx, _c)) = rest.char_indices().find(|(_idx, c)| {
+                match c {
+                    ']' => if nesting_level == 0 { return true; } else { nesting_level -= 1},
+                    '[' => nesting_level += 1,
+                    ',' => if nesting_level == 0 { return true; },
+                    _ => (),
+                }
+                return false;
+            }) {
+                let (part, tmp) = rest.split_at(idx);
+                rest = tmp.strip_prefix(_c).unwrap();
+                // println!("split at {} ({}): \"{}\" - \"{}\"", idx, _c, part, rest);
+                if part.len() != 0 {
+                    if let Ok(element) = part.parse::<Element>() {
+                        list.push(element);
+                    } else {
+                        return Err(());
+                    }
+                }
+            }
+            Ok(Element::List(list))
+        } else {
+            if let Ok(number) = s.parse::<usize>() {
+                return Ok(Element::Integer(number));
+            } else {
+                println!("Error: could not parse \"{}\"", s);
+                return Err(());
+            }
+        }
     }
-}
-
-impl Ord for Node {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.hcost.cmp(&other.hcost)
-    }
-}
-
-fn cost(x:usize, y:usize, world:&[Vec<usize>], from_x:usize, from_y:usize) -> usize {
-    let value = world[from_y][from_x];
-    let new_value = world[y][x];
-    if new_value > value+1 {
-        return usize::MAX;
-    } else {
-        return 1;
-    }
-}
-
-fn hcost(x:usize, y:usize, world:&[Vec<usize>], from_x:usize, from_y:usize) -> usize {
-    cost(x, y, world, from_x, from_y)
 }
 
 fn main() {
@@ -61,91 +110,27 @@ fn main() {
     let raw_string = String::from_utf8_lossy(&raw_input);
     let input : Vec<_> = raw_string.lines().collect();
 
-    let n = input.len();
-    let m = input[0].len();
+    let input_1 = input.iter().step_by(3);
+    let input_2 = input.iter().skip(1).step_by(3);
 
-    let mut start_position = Position{x:0, y:0};
-    let mut end_position = Position{x:0, y:0};
+    let mut all_pairs: Vec<Element> = input_1.zip(input_2).enumerate().flat_map(|(n,(a, b))| {
+        let elem_a : Element = a.parse().unwrap();
+        let elem_b : Element = b.parse().unwrap();
+        println!("{}: {:?} <=> {:?} => {:?}", n+1, a, b, elem_a.partial_cmp(&elem_b));
+        vec![elem_a, elem_b]
+    })
+    .collect();
 
-    let world : Vec<Vec<_>> = input.iter()
-        .enumerate()
-        .map(|(y, line)| {
-            line.chars()
-            .enumerate()
-            .map(|(x, mut c)| {
-                if c == 'S' {
-                    start_position = Position{x, y};
-                    c = 'a';
-                }
-                else if c == 'E' {
-                    end_position = Position{x, y};
-                    c = 'z';
-                }
-                let ret: usize = c as u32 as usize - 'a' as u32 as usize;
-                ret
-            }).collect::<Vec<_>>()
-        })
-        .collect();
+    println!("");
+    all_pairs.sort();
 
-    let start = Node::new(start_position.x, start_position.y, 0, 0);
-    
-    let mut to_visit = BinaryHeap::<Reverse<Node>>::new();
-    let mut visited = Vec::<(usize,usize,usize)>::new();
-    let mut found = false;
-    let mut path_cost: usize = 0;
-    
-    to_visit.push(Reverse(start));
-    while !found {
-        let Reverse(current) = to_visit.pop().unwrap();
-        visited.push((current.x, current.y, current.cost));
-        if current.x == end_position.x && current.y == end_position.y {
-            found = true;
-            path_cost = current.cost;
-        }
-        else
-        {
-            if current.x > 0 {
-                let cost = cost(current.x-1, current.y, &world, current.x, current.y);
-                let hcost = hcost(current.x-1, current.y, &world, current.x, current.y);
-                let new_node = Node::new(current.x-1, current.y, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
-                if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
-                {
-                    to_visit.push(Reverse(new_node));
-                }
-            }
-            if current.x < m-1 {
-                let cost = cost(current.x+1, current.y, &world, current.x, current.y);
-                let hcost = hcost(current.x+1, current.y, &world, current.x, current.y);
-                let new_node = Node::new(current.x+1, current.y, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
-                if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
-                {
-                    to_visit.push(Reverse(new_node));
-                }
-            }
-            if current.y > 0 {
-                let cost = cost(current.x, current.y-1, &world, current.x, current.y);
-                let hcost = hcost(current.x, current.y-1, &world, current.x, current.y);
-                let new_node = Node::new(current.x, current.y-1, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
-                if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
-                {
-                    to_visit.push(Reverse(new_node));
-                }
-            }
-            if current.y < n-1 {
-                let cost = cost(current.x, current.y+1, &world, current.x, current.y);
-                let hcost = hcost(current.x, current.y+1, &world, current.x, current.y);
-                let new_node = Node::new(current.x, current.y+1, usize::saturating_add(current.cost,cost), usize::saturating_add(current.cost,hcost));
-                if None == to_visit.iter().find(|Reverse(node)| new_node.x == node.x && new_node.y == node.y && new_node.hcost >= node.hcost)
-                && None == visited.iter().find(|node| new_node.x == node.0 && new_node.y == node.1 && new_node.cost >= node.2)
-                {
-                    to_visit.push(Reverse(new_node));
-                }
-            }
-        }
-    }
+    let result: usize = all_pairs.iter().enumerate().filter_map(|(n, elem)| {
+        println!("{}: {:?}", n+1, elem);
+        let mark_1: Element = "[[2]]".parse().unwrap();
+        let mark_2: Element = "[[6]]".parse().unwrap();
+        if elem == &mark_1 || elem == &mark_2 { Some(n+1) }
+        else { None }
+    }).product();
 
-    println!("answer: {}", path_cost);
+    println!("result: {}", result);
 }

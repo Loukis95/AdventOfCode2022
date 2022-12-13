@@ -39,7 +39,9 @@ impl PartialOrd for Element {
             } else {
                 if let Element::List(list_a) = self {
                     if let Element::List(list_b) = other {
-                        
+                        let result = list_a.iter().partial_cmp(list_b.iter());
+                        // println!("{:?} <=> {:?} => {:?}", list_a, list_b, result);
+                        return result
                     }
                     else {
                         panic!("This should never happen")
@@ -57,6 +59,7 @@ impl FromStr for Element {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // println!("parse: {}", s);
         let s = s.trim();
         if let Some(s) = s.strip_prefix("[") {
             let mut list = Vec::<Element>::new();
@@ -66,14 +69,14 @@ impl FromStr for Element {
                 match c {
                     ']' => if nesting_level == 0 { return true; } else { nesting_level -= 1},
                     '[' => nesting_level += 1,
-                    ',' => return true,
+                    ',' => if nesting_level == 0 { return true; },
                     _ => (),
                 }
                 return false;
             }) {
                 let (part, tmp) = rest.split_at(idx);
                 rest = tmp.strip_prefix(_c).unwrap();
-                let part = part.trim_end_matches(']');
+                // println!("split at {} ({}): \"{}\" - \"{}\"", idx, _c, part, rest);
                 if part.len() != 0 {
                     if let Ok(element) = part.parse::<Element>() {
                         list.push(element);
@@ -104,13 +107,17 @@ fn main() {
     let input_1 = input.iter().step_by(3);
     let input_2 = input.iter().skip(1).step_by(3);
 
-    input_1.zip(input_2).enumerate().for_each(|(n, (a, b))| {
+    let pairs_iterator = input_1.zip(input_2).enumerate().map(|(n,(a, b))| {
         let elem_a : Element = a.parse().unwrap();
         let elem_b : Element = b.parse().unwrap();
         println!("{}: {:?} <=> {:?} => {:?}", n, a, b, elem_a.partial_cmp(&elem_b));
+        (n,(elem_a, elem_b))
     });
 
-    // pairs_iterator.for_each(|(n, (a, b))| {
-    //     println!("{}: {:?} cmp {:?} => {:?}", n, a, b, a.partial_cmp(b));
-    // });
+    let result: usize = pairs_iterator.filter_map(|(n, (a, b))| {
+        if a < b { Some(n+1 as usize) }
+        else { None }
+    }).sum();
+
+    println!("result: {}", result);
 }

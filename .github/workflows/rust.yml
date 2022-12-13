@@ -441,3 +441,39 @@ jobs:
     - name: Run
       run: cargo run -- src/input.txt
       working-directory: aoc_12_2
+
+  aoc_13:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+  
+    - name: Build
+      run: cargo build
+      working-directory: aoc_13
+    - name: Run
+      run: cargo run -- src/input.txt
+      working-directory: aoc_13
+
+  aoc_13_2:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+  
+    - name: Build
+      run: cargo build
+      working-directory: aoc_13_2
+    - name: Run
+      run: cargo run -- src/input.txt
+      working-directory: aoc_13_2

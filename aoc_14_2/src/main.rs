@@ -168,8 +168,8 @@ fn main() {
     let mut sand_positions = Vec::<Point>::new();
 
     let mut iteration: usize = 0;
-    println!("==== Iteration #{} ====", iteration);
-    print_state(&sand_source, &rocks, &sand_positions, &min, &max);
+    // println!("==== Iteration #{} ====", iteration);
+    // print_state(&sand_source, &rocks, &sand_positions, &min, &max);
 
     loop {
         let mut sand = sand_source.clone();
@@ -189,8 +189,8 @@ fn main() {
             else {
                 sand_positions.push(sand);
                 iteration += 1;
-                println!("==== Iteration #{} ====", iteration);
-                print_state(&sand_source, &rocks, &sand_positions, &min, &max);
+                // println!("==== Iteration #{} ====", iteration);
+                // print_state(&sand_source, &rocks, &sand_positions, &min, &max);
                 break;
             }
         }

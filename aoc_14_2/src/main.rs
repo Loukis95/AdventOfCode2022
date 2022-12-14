@@ -170,7 +170,7 @@ fn main() {
     let mut to_check = Vec::<Point>::new();
     to_check.push(sand_source.clone());
 
-    while Some(sand) = to_check.pop() {
+    while let Some(sand) = to_check.pop() {
         if !sand.collides_with_lines(&rocks) && !sand.collides_with_points(&sand_positions) {
             sand_positions.push(sand.clone());
             to_check.push(sand.down_left());

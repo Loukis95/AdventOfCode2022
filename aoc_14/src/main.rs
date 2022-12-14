@@ -180,22 +180,13 @@ fn main() {
             if sand.x < min.x { break }
             if sand.y < min.y { break }
 
-            if !sand.down().collides_with_lines(&rocks) {
+            if !sand.down().collides_with_lines(&rocks) && !sand.down().collides_with_points(&sand_positions){
                 sand = sand.down();
             }
-            else if !sand.down_left().collides_with_lines(&rocks) {
+            else if !sand.down_left().collides_with_lines(&rocks) && !sand.down_left().collides_with_points(&sand_positions){
                 sand = sand.down_left();
             }
-            else if !sand.down_right().collides_with_lines(&rocks) {
-                sand = sand.down_right();
-            }
-            else if !sand.down().collides_with_points(&sand_positions) {
-                sand = sand.down();
-            }
-            else if !sand.down_left().collides_with_points(&sand_positions) {
-                sand = sand.down_left();
-            }
-            else if !sand.down_right().collides_with_points(&sand_positions) {
+            else if !sand.down_right().collides_with_lines(&rocks) && !sand.down_right().collides_with_points(&sand_positions){
                 sand = sand.down_right();
             }
             else {

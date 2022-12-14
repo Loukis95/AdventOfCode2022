@@ -163,7 +163,7 @@ fn main() {
     .collect::<Vec<_>>();
 
     max.y += 2;
-    rocks.push((Point::new(usize::MIN,max.y), Point::new(usize::MAX,max.y));
+    rocks.push((Point::new(usize::MIN,max.y), Point::new(usize::MAX,max.y)));
 
     let mut sand_positions = Vec::<Point>::new();
 

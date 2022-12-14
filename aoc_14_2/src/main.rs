@@ -167,35 +167,17 @@ fn main() {
 
     let mut sand_positions = Vec::<Point>::new();
 
-    let mut iteration: usize = 0;
-    // println!("==== Iteration #{} ====", iteration);
-    // print_state(&sand_source, &rocks, &sand_positions, &min, &max);
+    let mut to_check = Vec::<Point>::new();
+    to_check.push(sand_source.clone());
 
-    loop {
-        let mut sand = sand_source.clone();
-        loop {
-            if !sand.down().collides_with_lines(&rocks) && !sand.down().collides_with_points(&sand_positions){
-                sand = sand.down();
-            }
-            else if !sand.down_left().collides_with_lines(&rocks) && !sand.down_left().collides_with_points(&sand_positions){
-                sand = sand.down_left();
-            }
-            else if !sand.down_right().collides_with_lines(&rocks) && !sand.down_right().collides_with_points(&sand_positions){
-                sand = sand.down_right();
-            }
-            else {
-                sand_positions.push(sand);
-                iteration += 1;
-                // println!("==== Iteration #{} ====", iteration);
-                // print_state(&sand_source, &rocks, &sand_positions, &min, &max);
-                break;
-            }
-            // Stop when falling in the abyss
-            if sand == sand_source { break }
+    while Some(sand) = to_check.pop() {
+        if !sand.collides_with_lines(&rocks) && !sand.collides_with_points(&sand_positions) {
+            sand_positions.push(sand.clone());
+            to_check.push(sand.down_left());
+            to_check.push(sand.down());
+            to_check.push(sand.down_right())
         }
-        // Stop when falling in the abyss
-        if sand == sand_source { break }
     }
 
-    println!("result: {}", iteration);
+    println!("result: {}", sand_positions.len());
 }

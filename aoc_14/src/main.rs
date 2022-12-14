@@ -54,8 +54,7 @@ impl Point {
         self.x == other.x && other.y < self.y
     }
 
-    pub fn collides_with<T>(&self, lines: T) -> bool {
-        // If T: &[(Point,Point)]
+    pub fn collides_with_lines(&self, lines: &[(Point, Point)]) -> bool {
         for (mut begin, end) in lines {
             while begin != *end {
                 if self == &begin { return true; }
@@ -65,6 +64,13 @@ impl Point {
                 if begin.is_down(end) { begin = begin.up() }
             }
             if self == end { return true; }
+        }
+        return false;
+    }
+
+    pub fn collides_with_points(&self, points: &[Point]) -> bool {
+        for point in points {
+            if self == point { return true; }
         }
         return false;
     }
@@ -174,13 +180,22 @@ fn main() {
             if sand.x < min.x { break }
             if sand.y < min.y { break }
 
-            if !sand.down().collides_with(&rocks) {
+            if !sand.down().collides_with_lines(&rocks) {
                 sand = sand.down();
             }
-            else if !sand.down_left().collides_with(&rocks) {
+            else if !sand.down_left().collides_with_lines(&rocks) {
                 sand = sand.down_left();
             }
-            else if !sand.down_right().collides_with(&rocks) {
+            else if !sand.down_right().collides_with_lines(&rocks) {
+                sand = sand.down_right();
+            }
+            else if !sand.down().collides_with_points(&sand_positions) {
+                sand = sand.down();
+            }
+            else if !sand.down_left().collides_with_points(&sand_positions) {
+                sand = sand.down_left();
+            }
+            else if !sand.down_right().collides_with_points(&sand_positions) {
                 sand = sand.down_right();
             }
             else {

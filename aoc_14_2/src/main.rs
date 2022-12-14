@@ -174,9 +174,6 @@ fn main() {
     loop {
         let mut sand = sand_source.clone();
         loop {
-            // Stop when falling in the abyss
-            if sand == sand_source { break }
-
             if !sand.down().collides_with_lines(&rocks) && !sand.down().collides_with_points(&sand_positions){
                 sand = sand.down();
             }
@@ -193,6 +190,8 @@ fn main() {
                 // print_state(&sand_source, &rocks, &sand_positions, &min, &max);
                 break;
             }
+            // Stop when falling in the abyss
+            if sand == sand_source { break }
         }
         // Stop when falling in the abyss
         if sand == sand_source { break }

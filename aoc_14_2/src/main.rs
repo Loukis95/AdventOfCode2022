@@ -145,7 +145,7 @@ fn main() {
     if max.x < sand_source.x { max.x = sand_source.x }
     if max.y < sand_source.y { max.y = sand_source.y }
 
-    let rocks = input.iter().flat_map(|line| {
+    let mut rocks = input.iter().flat_map(|line| {
         let point_iterator_1 = line.split(" -> ").map(|coordinates| {
             let point = coordinates.parse::<Point>().unwrap();
             if min.x > point.x { min.x = point.x }
@@ -162,6 +162,9 @@ fn main() {
     })
     .collect::<Vec<_>>();
 
+    max.y += 2;
+    rocks.push((Point::new(usize::MIN,max.y), Point::new(usize::MAX,max.y));
+
     let mut sand_positions = Vec::<Point>::new();
 
     let mut iteration: usize = 0;
@@ -172,10 +175,7 @@ fn main() {
         let mut sand = sand_source.clone();
         loop {
             // Stop when falling in the abyss
-            if sand.x > max.x { break }
-            if sand.y > max.y { break }
-            if sand.x < min.x { break }
-            if sand.y < min.y { break }
+            if sand == sand_source { break }
 
             if !sand.down().collides_with_lines(&rocks) && !sand.down().collides_with_points(&sand_positions){
                 sand = sand.down();
@@ -189,16 +189,13 @@ fn main() {
             else {
                 sand_positions.push(sand);
                 iteration += 1;
-                // println!("==== Iteration #{} ====", iteration);
-                // print_state(&sand_source, &rocks, &sand_positions, &min, &max);
+                println!("==== Iteration #{} ====", iteration);
+                print_state(&sand_source, &rocks, &sand_positions, &min, &max);
                 break;
             }
         }
         // Stop when falling in the abyss
-        if sand.x > max.x { break }
-        if sand.y > max.y { break }
-        if sand.x < min.x { break }
-        if sand.y < min.y { break }
+        if sand == sand_source { break }
     }
 
     println!("result: {}", iteration);

@@ -55,15 +55,12 @@ impl Point {
     }
 
     pub fn collides_with_lines(&self, lines: &[(Point, Point)]) -> bool {
-        for (mut begin, end) in lines {
-            while begin != *end {
-                if self == &begin { return true; }
-                if begin.is_left(end) { begin = begin.right() }
-                if begin.is_right(end) { begin = begin.left() }
-                if begin.is_up(end) { begin = begin.down() }
-                if begin.is_down(end) { begin = begin.up() }
-            }
-            if self == end { return true; }
+        for (begin, end) in lines {
+            if self == begin || self == end { return true; }
+            else if begin.is_left(end) && self.is_right(begin) && self.is_left(end) { return true; }
+            else if begin.is_right(end) && self.is_left(begin) && self.is_right(end) { return true; }
+            else if begin.is_up(end) && self.is_down(begin) && self.is_up(end) { return true; }
+            else if begin.is_down(end) && self.is_up(begin) && self.is_down(end) { return true; }
         }
         return false;
     }

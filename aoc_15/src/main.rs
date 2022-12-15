@@ -415,7 +415,7 @@ fn main() {
     }).collect();
 
     println!("Segments at y={}:", TARGET_Y);
-    let scan_at_target_y: Vec<Segment> = sensors_beacons.iter().filter_map(|(sensor, beacon)| {
+    let mut scan_at_target_y: Vec<Segment> = sensors_beacons.iter().filter_map(|(sensor, beacon)| {
         let beacon_distance = Point::manhattan_distance(sensor, beacon);
         let target_distance = sensor.y.abs_diff(TARGET_Y);
         if beacon_distance >= target_distance {
@@ -430,24 +430,28 @@ fn main() {
         None
     }).collect();
 
-    let mut disjoint_at_target_y = Vec::<Segment>::new();
-
-    for segment in scan_at_target_y.into_iter() {
-        let mut merged = false;
-        for joint_segment in disjoint_at_target_y.iter_mut() {
-            if let Some(merged_segment) = joint_segment.merge_with(&segment) {
-                *joint_segment = merged_segment;
-                merged = true;
+    let mut counter: usize = 0;
+    loop {
+        if let Some(segment) = scan_at_target_y.pop() {
+            for other in scan_at_target_y.iter_mut() {
+                if let Some(merged) = other.merge_with(&segment) {
+                    *other = merged;
+                    counter = 0;
+                    continue;
+                }
+            }
+            counter += 1;
+            scan_at_target_y.push(segment);
+            if counter == scan_at_target_y.len() {
                 break;
             }
-        }
-        if !merged {
-            disjoint_at_target_y.push(segment);
+        } else {
+            break;
         }
     }
 
     println!("Disjoint segments:");
-    let result: usize = disjoint_at_target_y.iter()
+    let result: usize = scan_at_target_y.iter()
         .map(|segment| {
             println!("{:?}", segment);
             Point::manhattan_distance(&segment.begin, &segment.end)

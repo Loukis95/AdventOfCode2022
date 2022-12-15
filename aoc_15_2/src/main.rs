@@ -306,8 +306,8 @@ impl Contains<&Point> for Rectangle {
     fn contains(&self, rhs: &Point) -> bool {
         rhs.x <= isize::max(self.end.x, self.begin.x) &&
         rhs.x >= isize::min(self.end.x, self.begin.x) &&
-        rhs.y <= isize::max(self.end.x, self.begin.x) &&
-        rhs.y >= isize::min(self.end.x, self.begin.x)
+        rhs.y <= isize::max(self.end.y, self.begin.y) &&
+        rhs.y >= isize::min(self.end.y, self.begin.y)
     }
 }
 impl Contains<&Segment> for Rectangle {
@@ -326,12 +326,12 @@ impl Intersects<&Point> for Rectangle {
     }
 }
 impl Intersects<&Segment> for Rectangle {
-    fn intersects(&self, rhs: &Segment) -> bool {
+    fn intersects(&self, _rhs: &Segment) -> bool {
         todo!()
     }
 }
 impl Intersects<&Rectangle> for Rectangle {
-    fn intersects(&self, rhs: &Rectangle) -> bool {
+    fn intersects(&self, _rhs: &Rectangle) -> bool {
         todo!()
     }
 }

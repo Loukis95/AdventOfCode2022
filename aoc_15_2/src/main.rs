@@ -476,17 +476,17 @@ fn main() {
     let mut potential_points = VecDeque::<Point>::new();
     let area = Rectangle::new(Point::new(0,0), Point::new(TARGET,TARGET));
     while potential_points.is_empty() {
-        if let Some((s,b)) = sensors_beacons.pop() {
+        for (s,b) in sensors_beacons.iter() {
             let dist = Point::manhattan_distance(&s,&b) as isize;
-            for n in 0..dist+1 {
-                let p1 = Point::new(s.x+dist-n, s.y+n);
-                let p2 = Point::new(s.x-dist+n, s.y+n);
-                let p3 = Point::new(s.x+dist-n, s.y-n);
-                let p4 = Point::new(s.x-dist+n, s.y-n);
-                if area.contains(&p1) { potential_points.push_back(p1) }
-                if area.contains(&p2) { potential_points.push_back(p2) }
-                if area.contains(&p3) { potential_points.push_back(p3) }
-                if area.contains(&p4) { potential_points.push_back(p4) }
+            for n in 0..dist+2 {
+                let p1 = Point::new(s.x+dist+1-n, s.y+n);
+                let p2 = Point::new(s.x-dist-1+n, s.y+n);
+                let p3 = Point::new(s.x+dist+1-n, s.y-n);
+                let p4 = Point::new(s.x-dist-1+n, s.y-n);
+                if area.contains(&p1) { potential_points.push_back(p1); }
+                if area.contains(&p2) { potential_points.push_back(p2); }
+                if area.contains(&p3) { potential_points.push_back(p3); }
+                if area.contains(&p4) { potential_points.push_back(p4); }
             }
         }
     }

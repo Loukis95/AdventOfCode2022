@@ -415,7 +415,7 @@ fn main() {
     }).collect();
 
     println!("Segments at y={}:", TARGET_Y);
-    let mut scan_at_target_y: Vec<Segment> = sensors_beacons.iter().filter_map(|(sensor, beacon)| {
+    let mut scan_at_target_y: VecDeque<Segment> = sensors_beacons.iter().filter_map(|(sensor, beacon)| {
         let beacon_distance = Point::manhattan_distance(sensor, beacon);
         let target_distance = sensor.y.abs_diff(TARGET_Y);
         if beacon_distance >= target_distance {
@@ -432,7 +432,7 @@ fn main() {
 
     let mut counter: usize = 0;
     loop {
-        if let Some(segment) = scan_at_target_y.pop() {
+        if let Some(segment) = scan_at_target_y.pop_front() {
             let mut found = false;
             for other in scan_at_target_y.iter_mut() {
                 if let Some(merged) = other.merge_with(&segment) {
@@ -445,7 +445,7 @@ fn main() {
             }
             if found { continue; }
             counter += 1;
-            scan_at_target_y.push(segment);
+            scan_at_target_y.push_back(segment);
             println !("counter: {} - len: {}", counter, scan_at_target_y.len());
             if counter >= scan_at_target_y.len() {
                 break;

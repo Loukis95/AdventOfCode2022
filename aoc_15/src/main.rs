@@ -374,10 +374,17 @@ mod tests {
         let merged2 = s2.merge_with(&s1);
         assert_eq!(merged1, Some(Segment::new(Point::new(0,0), Point::new(0,2))));
         assert_eq!(merged2, merged1);
+        
+        let s1 = Segment::new(Point::new(0,0), Point::new(0,2));
+        let s2 = Segment::new(Point::new(0,3), Point::new(0,6));
+        let merged1 = s1.merge_with(&s2);
+        let merged2 = s2.merge_with(&s1);
+        assert_eq!(merged1, None);
+        assert_eq!(merged2, merged1);
     }
 }
 
-const TARGET_Y: isize = 10;
+const TARGET_Y: isize = 2000000;
 
 fn main() {
     let args : Vec<_> = env::args().collect();
@@ -420,7 +427,6 @@ fn main() {
         let beacon_distance = Point::manhattan_distance(sensor, beacon);
         let target_distance = sensor.y.abs_diff(TARGET_Y);
         if beacon_distance >= target_distance {
-            // let diff_y = sensor.y-TARGET_Y;
             let diff_x = beacon_distance as isize - target_distance as isize ;
             let begin = Point::new(sensor.x-diff_x, TARGET_Y);
             let end = Point::new(sensor.x+diff_x, TARGET_Y);
@@ -440,15 +446,15 @@ fn main() {
                     *other = merged;
                     counter = 0;
                     found = true;
-                    println!("merged: {:?}", other);
+                    // println!("merged: {:?}", other);
                     break;
                 }
             }
             if found { continue; }
             counter += 1;
             scan_at_target_y.push_back(segment);
-            println !("counter: {} - len: {}", counter, scan_at_target_y.len());
-            if counter >= scan_at_target_y.len() {
+            // println !("counter: {} - len: {}", counter, scan_at_target_y.len());
+            if counter >= scan_at_target_y.len() - 1 {
                 break;
             }
         } else {

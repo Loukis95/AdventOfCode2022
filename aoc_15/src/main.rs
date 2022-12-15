@@ -439,14 +439,14 @@ fn main() {
                     *other = merged;
                     counter = 0;
                     found = true;
-                    // println!("merged: {:?}", other);
+                    println!("merged: {:?}", other);
                     break;
                 }
             }
             if found { continue; }
             counter += 1;
             scan_at_target_y.push(segment);
-            // println !("counter: {} - len: {}", counter, scan_at_target_y.len());
+            println !("counter: {} - len: {}", counter, scan_at_target_y.len());
             if counter >= scan_at_target_y.len() {
                 break;
             }

@@ -433,7 +433,7 @@ fn main() {
     let mut counter: usize = 0;
     loop {
         if let Some(segment) = scan_at_target_y.pop() {
-            let found = false;
+            let mut found = false;
             for other in scan_at_target_y.iter_mut() {
                 if let Some(merged) = other.merge_with(&segment) {
                     *other = merged;

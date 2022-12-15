@@ -419,10 +419,10 @@ fn main() {
         let beacon_distance = Point::manhattan_distance(sensor, beacon);
         let target_distance = sensor.y.abs_diff(TARGET_Y);
         if beacon_distance >= target_distance {
-            let diff_y = sensor.y-TARGET_Y;
+            // let diff_y = sensor.y-TARGET_Y;
             let diff_x = beacon_distance as isize - target_distance as isize ;
-            let begin = Point::new(sensor.x-diff_x, sensor.y-diff_y);
-            let end = Point::new(sensor.x+diff_x, sensor.y-diff_y);
+            let begin = Point::new(sensor.x-diff_x, TARGET_Y);
+            let end = Point::new(sensor.x+diff_x, TARGET_Y);
             let segment = Segment::new(begin, end);
             println!("Sensor: {:?} - Beacon: {:?} => {:?}", sensor, beacon, segment);
             return Some(segment);

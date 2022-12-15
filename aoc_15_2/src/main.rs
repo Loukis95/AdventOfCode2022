@@ -447,7 +447,7 @@ fn main() {
     let mut min = Point::MAX;
     let mut max = Point::MIN;
 
-    let mut sensors_beacons : Vec<(Point,Point)> = input.iter().map(|line| {
+    let sensors_beacons : Vec<(Point,Point)> = input.iter().map(|line| {
         let mut it = line.split(':');
         if let Some(p) = it.next() {
             let p = p.trim_start_matches("Sensor at");
@@ -475,46 +475,44 @@ fn main() {
 
     let mut potential_points = VecDeque::<Point>::new();
     let area = Rectangle::new(Point::new(0,0), Point::new(TARGET,TARGET));
-    while potential_points.is_empty() {
-        for (s,b) in sensors_beacons.iter() {
-            let dist = Point::manhattan_distance(&s,&b) as isize;
-            for n in 0..dist+2 {
-                let p1 = Point::new(s.x+dist+1-n, s.y+n);
-                let p2 = Point::new(s.x-dist-1+n, s.y+n);
-                let p3 = Point::new(s.x+dist+1-n, s.y-n);
-                let p4 = Point::new(s.x-dist-1+n, s.y-n);
-                if area.contains(&p1) { potential_points.push_back(p1); }
-                if area.contains(&p2) { potential_points.push_back(p2); }
-                if area.contains(&p3) { potential_points.push_back(p3); }
-                if area.contains(&p4) { potential_points.push_back(p4); }
-            }
-        }
-    }
 
-    while let Some((s,b)) = sensors_beacons.pop() {
-        println!("Potential points: {}", potential_points.len());
-        let dist = Point::manhattan_distance(&s,&b);
-        let mut counter: usize = 0;
-        loop {
-            if let Some(p) = potential_points.pop_front() {
-                if Point::manhattan_distance(&p,&s) > dist {
-                    potential_points.push_back(p);
-                    counter += 1;
-                }
-                if counter >= potential_points.len() {
+    let mut found : Option<Point> = None;
+
+    for (s,b) in sensors_beacons.iter() {
+        let dist = Point::manhattan_distance(&s,&b) as isize;
+        for n in 0..dist+2 {
+            let p1 = Point::new(s.x+dist+1-n, s.y+n);
+            let p2 = Point::new(s.x-dist-1+n, s.y+n);
+            let p3 = Point::new(s.x+dist+1-n, s.y-n);
+            let p4 = Point::new(s.x-dist-1+n, s.y-n);
+            if area.contains(&p1) { potential_points.push_back(p1); }
+            if area.contains(&p2) { potential_points.push_back(p2); }
+            if area.contains(&p3) { potential_points.push_back(p3); }
+            if area.contains(&p4) { potential_points.push_back(p4); }
+        }
+        println!("Neighbors of sensor {:?}: {}", s, potential_points.len());
+        for point in potential_points.iter() {
+            let mut out_of_all_areas = true;
+            for (sensor, beacon) in sensors_beacons.iter() {
+                let dist = Point::manhattan_distance(sensor,beacon) as isize;
+                if Point::manhattan_distance(point,sensor) as isize <= dist {
+                    out_of_all_areas = false;
                     break;
                 }
             }
-            else
-            {
+            if out_of_all_areas {
+                found = Some(*point);
                 break;
             }
         }
-    }
+        if found.is_some() {
+            break;
+        }
+        potential_points.clear();
+    };
 
-    println!("");
-    println!("Remaining points:");
-    for point in potential_points.iter() {
+    println!("Answer:");
+    if let Some(point) = found {
         println!("{:?}: {}", point, point.x*TARGET+point.y);
     }
 }

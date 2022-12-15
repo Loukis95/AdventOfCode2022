@@ -442,7 +442,7 @@ fn main() {
             }
             counter += 1;
             scan_at_target_y.push(segment);
-            if counter == scan_at_target_y.len() {
+            if counter >= scan_at_target_y.len() {
                 break;
             }
         } else {

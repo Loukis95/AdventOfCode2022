@@ -63,10 +63,10 @@ fn heuristic(this: &Node, from: &Node, graph: &HashMap<String, Valve>) -> usize 
 }
 
 fn closed_valves(open_valves: &[String], graph: &HashMap<String,Valve>) -> Vec<String> {
-    fn closed_valves = Vec::<String>::new();
+    let mut closed_valves = Vec::<String>::new();
     for valve in graph.keys() {
-        if !open_valves.contains(valve) {
-            closed_valves.push(valve);
+        if !open_valves.contains(valve) && graph.get(valve).unwrap().flow_rate != 0 {
+            closed_valves.push(valve.to_string());
         }
     }
     closed_valves
@@ -98,26 +98,29 @@ impl Ord for ShortNode {
     }
 }
 
-fn shortest_path_to_valve(target: &str, from: &str, graph: &HashMap<String,Valve> -> Vec<String> {
+fn shortest_path_to_valve(target: &str, from: &str, graph: &HashMap<String,Valve>) -> Vec<String> {
     let mut to_visit = BinaryHeap::<Reverse<ShortNode>>::new();
     let mut found: Option<ShortNode> = None;
-    let start = ShortNode::new();
-    to_visit.push(start);
+    let start = ShortNode{name: from.to_string(), path: Vec::<String>::new()};
+    to_visit.push(Reverse(start));
     loop {
-        let current = to_visit.pop();
+        let current = to_visit.pop().unwrap().0;
         if &current.name == target {
             found = Some(current);
             break;
         }
-        let nearby_valves = graph.get(&current.name).unwrap().tunnels;
+        let nearby_valves = &graph.get(&current.name).unwrap().tunnels;
         for nearby_valve in nearby_valves {
             let mut path = current.path.clone();
-            path.push(current.name);
-            let next = ShortNode::new(nearby_valve, path);
-            to_visit.push(next);
+            path.push(current.name.clone());
+            let next = ShortNode{name: nearby_valve.clone(), path};
+            to_visit.push(Reverse(next));
         }
     }
-    found.unwrap().path
+    let found = found.unwrap();
+    let mut path = found.path;
+    path.push(found.name.clone());
+    path
 }
 
 fn main() {
@@ -167,7 +170,7 @@ fn main() {
     while found.is_none() {
         let current = to_visit.pop().unwrap();
         {
-            println!("Exploring node with depth: {}, cost: {}, h: {}", current.stack.len(), current.cost, current.heuristic);
+            println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
             // for (n, step) in current.stack.iter().enumerate() {
             //     println!("======== Step {} ========", n);
             //     match &step.action {
@@ -175,6 +178,7 @@ fn main() {
             //         Action::OpenValve(s) => println!("Open valve {}", s),
             //         Action::MoveToValve(s) => println!("Move to valve {}", s),
             //     }
+            //     println!("Opened valves: {:?}", step.open_valves);
             //     println!("Released pressure: {}", step.cost);
             // }
             // println!("");
@@ -185,62 +189,54 @@ fn main() {
             continue;
         }
         // find closed valves for current state
-        let closed_valves = closed_valves(&current.open_valves, &graph);
-        for closed_valve in closed_valves {
-            let shortest_path = shortest_path_to_valve(closed_valve, current.name, &graph);
+        let closed = closed_valves(&current.open_valves, &graph);
+        for closed_valve in closed.iter() {
+            // find shortest path to closed valve
+            let shortest_path = shortest_path_to_valve(closed_valve, &current.name, &graph);
             let mut stack = current.stack.clone();
-            stack.push(current.clone())
+            stack.push(current.clone());
+            let mut previous = current.clone();
+            // Simulate the steps to reach this valve
             for step in shortest_path.iter().skip(1) {
                 let mut next = Node { 
                     name: step.clone(),
-                    open_valves: current.open_valves.clone(),
+                    open_valves: previous.open_valves.clone(),
                     action: Action::MoveToValve(step.clone()),
-                    stack: stack, 
-                    flow_tick: current.flow_tick,
-                    cost: cost(&next, &current, &graph),
-                    heuristic: heuristic(&next, &current, &graph),
+                    stack: stack.clone(), 
+                    flow_tick: previous.flow_tick,
+                    cost: 0,
+                    heuristic: 0,
                 };
-                stack.push(next);
+                next.cost = cost(&next, &previous, &graph);
+                next.heuristic = heuristic(&next, &previous, &graph);
+                stack.push(next.clone());
+                previous = next;
             }
-        }
-
-
-
-
-
-
-        // Try to open the valve if not already open
-        if !current.open_valves.contains(&current.name) {
-            let mut open_valves = current.open_valves.clone();
-            open_valves.push(current.name.clone());
-            let mut stack = current.stack.clone();
-            stack.push(current.clone());
-            let flow_tick = current.flow_tick + graph.get(&current.name).unwrap().flow_rate;
+            // Open the closed valve
+            let mut open_valves = previous.open_valves.clone();
+            open_valves.push(previous.name.clone());
+            let flow_tick = previous.flow_tick + graph.get(&previous.name).unwrap().flow_rate;
             let mut next = Node { 
-                name: current.name.clone(),
+                name: previous.name.clone(),
                 open_valves,
-                action: Action::OpenValve(current.name.clone()),
-                stack: stack, 
+                action: Action::OpenValve(previous.name.clone()),
+                stack: stack,
                 flow_tick,
                 cost: 0,
-                heuristic: 0
+                heuristic: 0,
             };
-            let cost = cost(&next, &current, &graph);
-            let heuristic = heuristic(&next, &current, &graph);
-            next.cost = cost;
-            next.heuristic = heuristic;
-            // Add nodes to the list
+            next.cost = cost(&next, &previous, &graph);
+            next.heuristic = heuristic(&next, &previous, &graph);
             to_visit.push(next);
         }
-        // Move to nearby valves
-        let nearby_valves = &graph.get(&current.name).unwrap().tunnels;
-        for nearby_valve in nearby_valves {
+        // Or we can just chill
+        if closed.len() == 0 {
             let mut stack = current.stack.clone();
             stack.push(current.clone());
             let mut next = Node { 
-                name: nearby_valve.clone(),
+                name: current.name.clone(),
                 open_valves: current.open_valves.clone(),
-                action: Action::MoveToValve(nearby_valve.clone()),
+                action: Action::WaitAt(current.name.clone()),
                 stack: stack, 
                 flow_tick: current.flow_tick,
                 cost: 0,
@@ -253,25 +249,10 @@ fn main() {
             // Add nodes to the list
             to_visit.push(next);
         }
-        // Or we can just chill
-        // let mut stack = current.stack.clone();
-        // stack.push(current.clone());
-        // let mut next = Node { 
-        //     name: current.name.clone(),
-        //     open_valves: current.open_valves.clone(),
-        //     action: Action::WaitAt(current.name.clone()),
-        //     stack: stack, 
-        //     flow_tick: current.flow_tick,
-        //     cost: 0,
-        //     heuristic: 0
-        // };
-        // let cost = cost(&next, &current, &graph);
-        // let heuristic = heuristic(&next, &current, &graph);
-        // next.cost = cost;
-        // next.heuristic = heuristic;
-        // // Add nodes to the list
-        // to_visit.push(next);
     }
+
+
+
 
     let node = found.unwrap();
     for (n, step) in node.stack.iter().enumerate() {

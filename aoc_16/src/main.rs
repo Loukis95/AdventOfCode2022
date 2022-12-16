@@ -190,21 +190,17 @@ fn main() {
             let shortest_path = shortest_path_to_valve(closed_valve, current.name, &graph);
             let mut stack = current.stack.clone();
             stack.push(current.clone())
-            for step in shortest_path {
-                
+            for step in shortest_path.iter().skip(1) {
                 let mut next = Node { 
-                    name: nearby_valve.clone(),
+                    name: step.clone(),
                     open_valves: current.open_valves.clone(),
-                    action: Action::MoveToValve(nearby_valve.clone()),
+                    action: Action::MoveToValve(step.clone()),
                     stack: stack, 
                     flow_tick: current.flow_tick,
-                    cost: 0,
-                    heuristic: 0
+                    cost: cost(&next, &current, &graph),
+                    heuristic: heuristic(&next, &current, &graph),
                 };
-                let cost = cost(&next, &current, &graph);
-                let heuristic = heuristic(&next, &current, &graph);
-                next.cost = cost;
-                next.heuristic = heuristic;
+                stack.push(next);
             }
         }
 

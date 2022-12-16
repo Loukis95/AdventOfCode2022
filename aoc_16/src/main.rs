@@ -21,7 +21,7 @@ struct Node {
     name: String,
     open_valves: Vec<String>,
     action: Action,
-    stack: Vec<Node>,
+    stack: Vec<Action>,
     flow_tick: usize,
     cost: usize,
     heuristic: usize,
@@ -154,38 +154,47 @@ fn main() {
         graph.insert(name.to_string(), valve);
     });
 
-    let mut to_visit = BinaryHeap::<Node>::new();
-    let mut found: Option<Node> = None;
-
+    // Create the starting node
     let start = Node {
         name: "AA".to_string(),
         open_valves: Vec::<String>::new(),
         action: Action::WaitAt("AA".to_string()),
-        stack: Vec::<Node>::new(),
+        stack: Vec::<Action>::new(),
         flow_tick: 0,
         cost: 0,
         heuristic: 0
     };
+
+    let mut to_visit = BinaryHeap::<Node>::new();
+    let mut found: Option<Node> = None;
     to_visit.push(start);
-    while found.is_none() {
+    while !to_visit.is_empty() {
         let current = to_visit.pop().unwrap();
         {
             println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
             // for (n, step) in current.stack.iter().enumerate() {
             //     println!("======== Step {} ========", n);
-            //     match &step.action {
+            //     match &step {
             //         Action::WaitAt(s) => println!("Chill at node {}", s),
             //         Action::OpenValve(s) => println!("Open valve {}", s),
             //         Action::MoveToValve(s) => println!("Move to valve {}", s),
             //     }
-            //     println!("Opened valves: {:?}", step.open_valves);
-            //     println!("Released pressure: {}", step.cost);
             // }
             // println!("");
         }
         // Stop condition
         if current.stack.len() >= DEPTH_LIMIT {
-            found = Some(current);
+            let mut stack = current.stack.clone();
+            stack.push(current.action.clone());
+            let mut end = current.clone();
+            end.stack = stack;
+            if let Some(tmp) = &found {
+                if tmp.cost < end.cost {
+                    found = Some(end);
+                }
+            } else {
+                found = Some(end);
+            }
             continue;
         }
         // find closed valves for current state
@@ -194,7 +203,7 @@ fn main() {
             // find shortest path to closed valve
             let shortest_path = shortest_path_to_valve(closed_valve, &current.name, &graph);
             let mut stack = current.stack.clone();
-            stack.push(current.clone());
+            stack.push(current.action.clone());
             let mut previous = current.clone();
             // Simulate the steps to reach this valve
             for step in shortest_path.iter().skip(1) {
@@ -209,7 +218,7 @@ fn main() {
                 };
                 next.cost = cost(&next, &previous, &graph);
                 next.heuristic = heuristic(&next, &previous, &graph);
-                stack.push(next.clone());
+                stack.push(next.action.clone());
                 previous = next;
             }
             // Open the closed valve
@@ -232,7 +241,7 @@ fn main() {
         // Or we can just chill
         if closed.len() == 0 {
             let mut stack = current.stack.clone();
-            stack.push(current.clone());
+            stack.push(current.action.clone());
             let mut next = Node { 
                 name: current.name.clone(),
                 open_valves: current.open_valves.clone(),
@@ -257,11 +266,11 @@ fn main() {
     let node = found.unwrap();
     for (n, step) in node.stack.iter().enumerate() {
         println!("======== Step {} ========", n);
-        match &step.action {
+        match &step {
             Action::WaitAt(s) => println!("Chill at node {}", s),
             Action::OpenValve(s) => println!("Open valve {}", s),
             Action::MoveToValve(s) => println!("Move to valve {}", s),
         }
-        println!("Released pressure: {}", step.cost);
     }
+    println!("Released pressure: {}", node.cost);
 }

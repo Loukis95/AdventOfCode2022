@@ -62,6 +62,64 @@ fn heuristic(this: &Node, from: &Node, graph: &HashMap<String, Valve>) -> usize 
     }
 }
 
+fn closed_valves(open_valves: &[String], graph: &HashMap<String,Valve>) -> Vec<String> {
+    fn closed_valves = Vec::<String>::new();
+    for valve in graph.keys() {
+        if !open_valves.contains(valve) {
+            closed_valves.push(valve);
+        }
+    }
+    closed_valves
+}
+
+#[derive(Debug, Clone)]
+struct ShortNode {
+    name: String,
+    path: Vec<String>,
+}
+
+impl PartialEq for ShortNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.path.len().eq(&other.path.len())
+    }
+}
+
+impl Eq for ShortNode {}
+
+impl PartialOrd for ShortNode {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.path.len().partial_cmp(&other.path.len())
+    }
+}
+
+impl Ord for ShortNode {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.path.len().cmp(&other.path.len())
+    }
+}
+
+fn shortest_path_to_valve(target: &str, from: &str, graph: &HashMap<String,Valve> -> Vec<String> {
+    let mut to_visit = BinaryHeap::<Reverse<ShortNode>>::new();
+    let mut found: Option<ShortNode> = None;
+    let start = ShortNode::new();
+    to_visit.push(start);
+    loop {
+        let current = to_visit.pop();
+        if &current.name == target {
+            found = Some(current);
+            break;
+        }
+        let nearby_valves = graph.get(&current.name).unwrap().tunnels;
+        for nearby_valve in nearby_valves {
+            let mut path = current.path.clone();
+            path.push(current.name);
+            let next = ShortNode::new(nearby_valve, path);
+            to_visit.push(next);
+        }
+    }
+    found.unwrap().path
+}
+
 fn main() {
     let args : Vec<_> = env::args().collect();
     let input_path = &args[1];
@@ -96,7 +154,15 @@ fn main() {
     let mut to_visit = BinaryHeap::<Node>::new();
     let mut found: Option<Node> = None;
 
-    let start = Node { name: "AA".to_string(), open_valves: Vec::<String>::new(), action: Action::WaitAt("AA".to_string()), stack: Vec::<Node>::new(), flow_tick: 0, cost: 0, heuristic: 0 };
+    let start = Node {
+        name: "AA".to_string(),
+        open_valves: Vec::<String>::new(),
+        action: Action::WaitAt("AA".to_string()),
+        stack: Vec::<Node>::new(),
+        flow_tick: 0,
+        cost: 0,
+        heuristic: 0
+    };
     to_visit.push(start);
     while found.is_none() {
         let current = to_visit.pop().unwrap();
@@ -113,10 +179,40 @@ fn main() {
             // }
             // println!("");
         }
+        // Stop condition
         if current.stack.len() >= DEPTH_LIMIT {
             found = Some(current);
             continue;
         }
+        // find closed valves for current state
+        let closed_valves = closed_valves(&current.open_valves, &graph);
+        for closed_valve in closed_valves {
+            let shortest_path = shortest_path_to_valve(closed_valve, current.name, &graph);
+            let mut stack = current.stack.clone();
+            stack.push(current.clone())
+            for step in shortest_path {
+                
+                let mut next = Node { 
+                    name: nearby_valve.clone(),
+                    open_valves: current.open_valves.clone(),
+                    action: Action::MoveToValve(nearby_valve.clone()),
+                    stack: stack, 
+                    flow_tick: current.flow_tick,
+                    cost: 0,
+                    heuristic: 0
+                };
+                let cost = cost(&next, &current, &graph);
+                let heuristic = heuristic(&next, &current, &graph);
+                next.cost = cost;
+                next.heuristic = heuristic;
+            }
+        }
+
+
+
+
+
+
         // Try to open the valve if not already open
         if !current.open_valves.contains(&current.name) {
             let mut open_valves = current.open_valves.clone();

@@ -171,7 +171,7 @@ fn main() {
     while !to_visit.is_empty() {
         let current = to_visit.pop().unwrap();
         {
-            println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
+            // println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
             // for (n, step) in current.stack.iter().enumerate() {
             //     println!("======== Step {} ========", n);
             //     match &step {
@@ -199,9 +199,12 @@ fn main() {
         }
         // find closed valves for current state
         let closed = closed_valves(&current.open_valves, &graph);
+        // println!("Closed valves: {:?}", closed);
         for closed_valve in closed.iter() {
             // find shortest path to closed valve
+            // print!("Shortest path to {} from {}", closed_valve, &current.name);
             let shortest_path = shortest_path_to_valve(closed_valve, &current.name, &graph);
+            // println!(" => {:?}", shortest_path);
             let mut stack = current.stack.clone();
             stack.push(current.action.clone());
             let mut previous = current.clone();
@@ -219,6 +222,7 @@ fn main() {
                 next.cost = cost(&next, &previous, &graph);
                 next.heuristic = heuristic(&next, &previous, &graph);
                 stack.push(next.action.clone());
+                // println!("Push to stack: {:?}", next.action);
                 previous = next;
             }
             // Open the closed valve
@@ -236,6 +240,7 @@ fn main() {
             };
             next.cost = cost(&next, &previous, &graph);
             next.heuristic = heuristic(&next, &previous, &graph);
+            // println!("Push to queue: {:?}", next.action);
             to_visit.push(next);
         }
         // Or we can just chill

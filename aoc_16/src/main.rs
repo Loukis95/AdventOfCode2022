@@ -208,42 +208,43 @@ fn main() {
             let mut stack = current.stack.clone();
             stack.push(current.action.clone());
             let mut previous = current.clone();
-            if shortest_path.len()-1 + current.stack.len() < DEPTH_LIMIT {
-                // Simulate the steps to reach this valve
-                for step in shortest_path.iter().skip(1) {
-                    let mut next = Node { 
-                        name: step.clone(),
-                        open_valves: previous.open_valves.clone(),
-                        action: Action::MoveToValve(step.clone()),
-                        stack: stack.clone(), 
-                        flow_tick: previous.flow_tick,
-                        cost: 0,
-                        heuristic: 0,
-                    };
-                    next.cost = cost(&next, &previous, &graph);
-                    next.heuristic = heuristic(&next, &previous, &graph);
-                    stack.push(next.action.clone());
-                    // println!("Push to stack: {:?}", next.action);
-                    previous = next;
-                }
-                // Open the closed valve
-                let mut open_valves = previous.open_valves.clone();
-                open_valves.push(previous.name.clone());
-                let flow_tick = previous.flow_tick + graph.get(&previous.name).unwrap().flow_rate;
+            // Simulate the steps to reach this valve
+            for step in shortest_path.iter().skip(1) {
                 let mut next = Node { 
-                    name: previous.name.clone(),
-                    open_valves,
-                    action: Action::OpenValve(previous.name.clone()),
-                    stack: stack,
-                    flow_tick,
+                    name: step.clone(),
+                    open_valves: previous.open_valves.clone(),
+                    action: Action::MoveToValve(step.clone()),
+                    stack: stack.clone(), 
+                    flow_tick: previous.flow_tick,
                     cost: 0,
                     heuristic: 0,
                 };
                 next.cost = cost(&next, &previous, &graph);
                 next.heuristic = heuristic(&next, &previous, &graph);
-                // println!("Push to queue: {:?}", next.action);
-                to_visit.push(next);
+
+                if next.stack.len() >= DEPTH_LIMIT { break; }
+
+                stack.push(next.action.clone());
+                // println!("Push to stack: {:?}", next.action);
+                previous = next;
             }
+            // Open the closed valve
+            let mut open_valves = previous.open_valves.clone();
+            open_valves.push(previous.name.clone());
+            let flow_tick = previous.flow_tick + graph.get(&previous.name).unwrap().flow_rate;
+            let mut next = Node { 
+                name: previous.name.clone(),
+                open_valves,
+                action: Action::OpenValve(previous.name.clone()),
+                stack: stack,
+                flow_tick,
+                cost: 0,
+                heuristic: 0,
+            };
+            next.cost = cost(&next, &previous, &graph);
+            next.heuristic = heuristic(&next, &previous, &graph);
+            // println!("Push to queue: {:?}", next.action);
+            to_visit.push(next);
         }
         // Or we can just chill
         if closed.len() == 0 {

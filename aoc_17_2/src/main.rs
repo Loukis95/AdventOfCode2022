@@ -930,23 +930,23 @@ where T: BoundingBox + Clone
             // println!(" => {:?}", self.area);
         } else {
             let bounding_box = item.bounding_box();
-            println!("Extending current area: {:?}", self.area);
-            println!("    item bounding box: {:?}", bounding_box);
+            // println!("Extending current area: {:?}", self.area);
+            // println!("    item bounding box: {:?}", bounding_box);
             self.area = Rectangle::enclosing_area(&self.area, &bounding_box);
-            println!("    enclosing area: {:?}", self.area);
+            // println!("    enclosing area: {:?}", self.area);
             let diff = self.pivot - self.parent_pivot;
-            println!("    pivot diff: {:?}", diff);
+            // println!("    pivot diff: {:?}", diff);
             if diff.y <= 0 {
-                let min_y = self.parent_pivot.y;
-                if self.area.begin.y > min_y    { self.area.begin.y = min_y; }
-                if self.area.end.y > min_y      { self.area.end.y = min_y; }
+                let max_y = self.parent_pivot.y;
+                if self.area.begin.y > max_y    { self.area.begin.y = max_y; }
+                if self.area.end.y > max_y      { self.area.end.y = max_y; }
             }
             else {
-                let max_y = self.parent_pivot.y;
-                if self.area.begin.y < max_y    { self.area.begin.y = max_y; }
-                if self.area.end.y < max_y      { self.area.end.y = max_y; }
+                let min_y = self.parent_pivot.y;
+                if self.area.begin.y < min_y    { self.area.begin.y = min_y; }
+                if self.area.end.y < min_y      { self.area.end.y = min_y; }
             }
-            println!("    new area: {:?}", self.area);
+            // println!("    new area: {:?}", self.area);
         }
         self.nb_items += 1;
         // Insert in the quadtree
@@ -1006,35 +1006,41 @@ where T: BoundingBox + Clone
         let mut divisions = Vec::<DivTree<T>>::new();
         if let DivTreeCell::Cell(data) = &self.cell {
             if data.len() > self.threshold {
-                println!("Optimizing DivTree with {} items", data.len());
-                println!("Current area: {:?}", self.area);
+                // println!("Optimizing DivTree with {} items", data.len());
+                // println!("Current area: {:?}", self.area);
                 let lower_left_corner = self.area.lower_left_corner();
                 let upper_right_corner = self.area.upper_right_corner();
                 // Calculating a new pivot in the middle of the current area
                 let next_pivot = lower_left_corner + (upper_right_corner - lower_left_corner) / 2;
-                println!("Next pivot: {:?}", next_pivot);
+                // println!("Next pivot: {:?}", next_pivot);
                 // Calculating temporary pivot for 1st child cell
                 let pivot0 = next_pivot + (upper_right_corner - next_pivot) / 2;
                 let area0 = Rectangle::enclosing_area(
                     &Rectangle::new(self.area.upper_left_corner(), self.area.upper_right_corner()),
                     &next_pivot
                 );
-                println!("1st child pivot: {:?}", pivot0);
-                println!("1st child area: {:?}", area0);
+                // println!("1st child pivot: {:?}", pivot0);
+                // println!("1st child area: {:?}", area0);
                 let pivot1 = next_pivot - (upper_right_corner - next_pivot) / 2;
                 let area1 = Rectangle::enclosing_area(
                     &Rectangle::new(self.area.lower_left_corner(), self.area.lower_right_corner()),
                     &next_pivot
                 );
-                println!("2nd child pivot: {:?}", pivot1);
-                println!("2nd child area: {:?}", area1);
+                // println!("2nd child pivot: {:?}", pivot1);
+                // println!("2nd child area: {:?}", area1);
                 if area0.height() <= self.minimum_area_size as isize ||
                     area1.height() <= self.minimum_area_size as isize
                 {
-                    println!("Aborting optimization because child areas are too small");
+                    // println!("Aborting optimization because child areas are too small");
                     return;
                 }
+                // Only for the root node => parent_pivot is always == pivot
+                if self.parent_pivot == self.pivot {
+                    self.parent_pivot = next_pivot;
+                }
+                // Overwrite with the new pivot
                 self.pivot = next_pivot;
+                // Copy data to distribute later in child nodes
                 all_data = data.clone();
                 divisions.push(DivTree::<T>::builder()
                     .with_threshold(self.threshold)
@@ -1189,7 +1195,7 @@ impl BoundingBox for Rock {
     }
 }
 
-const NB_ROCKS: usize = 25;
+const NB_ROCKS: usize = 1000000000000;
 const RIGHT_SHIFT: isize = 2;
 const UP_SHIFT: isize = 3;
 const CAVE_WIDTH: isize = 7;
@@ -1279,8 +1285,8 @@ fn main() {
             }
         }
         let comparisons = fallen_rocks.nearby_iter(&rock).count();
-        println!("Fallen rocks: {}, comparisons: {}, max_height: {}", fallen_rocks.len(), comparisons, max_height);
-        println!("");
+        // println!("Fallen rocks: {}, comparisons: {}, max_height: {}", fallen_rocks.len(), comparisons, max_height);
+        // println!("");
     }
 
     println!("Max height: {}", max_height);

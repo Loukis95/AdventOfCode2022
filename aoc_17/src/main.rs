@@ -1,5 +1,4 @@
 use std::{env, fs};
-use std::collections::VecDeque;
 
 pub trait Contains<Rhs=Self> {
     fn contains(&self, rhs: Rhs) -> bool;
@@ -7,6 +6,15 @@ pub trait Contains<Rhs=Self> {
 
 pub trait Intersects<Rhs=Self> {
     fn intersects(&self, rhs: Rhs) -> bool;
+}
+
+pub trait Move {
+    fn r#move_n(&mut self, direction: Direction, n: isize);
+
+    // Auto implemented
+    fn r#move(&mut self, direction: Direction) {
+        self.move_n(direction, 1);
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,6 +27,40 @@ pub struct Point {
 pub enum Orientation {
     Vertical,
     Horizontal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PointDirection {
+    Collinear,
+    AntiClockwise,
+    Clockwise,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+    DownLeft,
+    DownRight,
+    UpLeft,
+    UpRight,
+}
+
+impl Direction {
+    pub const fn opposite(dir: Direction) -> Direction {
+        match dir {
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::DownLeft => Direction::UpRight,
+            Direction::DownRight => Direction::UpLeft,
+            Direction::UpLeft => Direction::DownRight,
+            Direction::UpRight => Direction::DownLeft,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,28 +84,53 @@ impl Point {
     }
 
     pub const fn left(&self) -> Self {
-        Self { x:self.x-1, y:self.y }
+        self.left_n(1)
     }
     pub const fn right(&self) -> Self {
-        Self { x:self.x+1, y:self.y }
+        self.right_n(1)
     }
     pub const fn up(&self) -> Self {
-        Self { x:self.x, y:self.y-1 }
+        self.up_n(1)
     }
     pub const fn down(&self) -> Self {
-        Self { x:self.x, y:self.y+1 }
+        self.down_n(1)
     }
     pub const fn down_left(&self) -> Self {
-        Self { x:self.x-1, y:self.y+1 }
+        self.down_left_n(1)
     }
     pub const fn down_right(&self) -> Self {
-        Self { x:self.x+1, y:self.y+1 }
+        self.down_right_n(1)
     }
     pub const fn up_left(&self) -> Self {
-        Self { x:self.x-1, y:self.y-1 }
+        self.up_left_n(1)
     }
     pub const fn up_right(&self) -> Self {
-        Self { x:self.x+1, y:self.y-1 }
+        self.up_right_n(1)
+    }
+
+    pub const fn left_n(&self, n: isize) -> Self {
+        Self { x:self.x-n, y:self.y }
+    }
+    pub const fn right_n(&self, n: isize) -> Self {
+        Self { x:self.x+n, y:self.y }
+    }
+    pub const fn up_n(&self, n: isize) -> Self {
+        Self { x:self.x, y:self.y-n }
+    }
+    pub const fn down_n(&self, n: isize) -> Self {
+        Self { x:self.x, y:self.y+n }
+    }
+    pub const fn down_left_n(&self, n: isize) -> Self {
+        Self { x:self.x-n, y:self.y+n }
+    }
+    pub const fn down_right_n(&self, n: isize) -> Self {
+        Self { x:self.x+n, y:self.y+n }
+    }
+    pub const fn up_left_n(&self, n: isize) -> Self {
+        Self { x:self.x-n, y:self.y-n }
+    }
+    pub const fn up_right_n(&self, n: isize) -> Self {
+        Self { x:self.x+n, y:self.y-n }
     }
 
     pub const fn is_left_of(&self, other: &Self) -> bool {
@@ -85,6 +152,17 @@ impl Point {
 
     pub const fn manhattan_distance(lhs: &Self, rhs:&Self) -> usize {
         lhs.x.abs_diff(rhs.x) + lhs.y.abs_diff(rhs.y)
+    }
+
+    pub const fn point_direction(p1: &Point, p2: &Point, p3: &Point) -> PointDirection {
+        let val = (p2.y-p1.y)*(p3.x-p2.x)-(p2.x-p1.x)*(p3.y-p2.y);
+        if val == 0 {
+            return PointDirection::Collinear;
+        } else if val < 0 {
+            return PointDirection::AntiClockwise;
+        } else {
+            return PointDirection::Clockwise;
+        }
     }
 }
 
@@ -144,6 +222,21 @@ impl std::ops::DivAssign<isize> for Point {
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{},{}", self.x, self.y)
+    }
+}
+
+impl Move for Point {
+    fn r#move_n(&mut self, direction: Direction, n: isize) {
+        *self = match direction {
+            Direction::Left => self.left_n(n),
+            Direction::Right => self.right_n(n),
+            Direction::Up => self.up_n(n),
+            Direction::Down => self.down_n(n),
+            Direction::DownLeft => self.down_left_n(n),
+            Direction::DownRight => self.down_right_n(n),
+            Direction::UpLeft => self.up_left_n(n),
+            Direction::UpRight => self.up_right_n(n),
+        }
     }
 }
 
@@ -231,16 +324,35 @@ impl Segment {
     }
 }
 
+impl Move for Segment {
+    fn r#move_n(&mut self, direction: Direction, n: isize) {
+        self.begin.r#move_n(direction, n);
+        self.end.r#move_n(direction, n);
+    }
+}
+
 impl Contains<&Point> for Segment {
     fn contains(&self, rhs: &Point) -> bool {
         if self.horizontal() && rhs.x >= isize::min(self.begin.x, self.end.x) && rhs.x <= isize::max(self.begin.x, self.end.x) { return true }
         else if self.vertical() && rhs.y >= isize::min(self.begin.y, self.end.y) && rhs.y <= isize::max(self.begin.y, self.end.y) { return true }
-        else { return false }
+        else if !self.vertical() && ! self.horizontal() { 
+            println!("{:?}", self);
+            todo!()
+        }
+        else {
+            return false;
+        }
     }
 }
 
 impl Contains<&Segment> for Segment {
     fn contains(&self, rhs: &Segment) -> bool {
+        self.contains(&rhs.begin) && self.contains(&rhs.end)
+    }
+}
+
+impl Contains<&Rectangle> for Segment {
+    fn contains(&self, rhs: &Rectangle) -> bool {
         self.contains(&rhs.begin) && self.contains(&rhs.end)
     }
 }
@@ -252,8 +364,28 @@ impl Intersects<&Point> for Segment {
 }
 
 impl Intersects<&Segment> for Segment {
-    fn intersects(&self, _rhs: &Segment) -> bool {
-        todo!()
+    fn intersects(&self, rhs: &Segment) -> bool {
+        let dir1 = Point::point_direction(&self.begin, &self.end, &rhs.begin);
+        let dir2 = Point::point_direction(&self.begin, &self.end, &rhs.end);
+        let dir3 = Point::point_direction(&rhs.begin, &rhs.end, &self.begin);
+        let dir4 = Point::point_direction(&rhs.begin, &rhs.end, &self.end);
+
+        if dir1 != dir2 && dir3 != dir4 {
+            return true
+        }
+        if dir1 == PointDirection::Collinear && self.contains(&rhs.begin) {
+            return true
+        }
+        if dir2 == PointDirection::Collinear && self.contains(&rhs.end) {
+            return true
+        }
+        if dir3 == PointDirection::Collinear && rhs.contains(&self.begin) {
+            return true
+        }
+        if dir4 == PointDirection::Collinear && rhs.contains(&self.end) {
+            return true
+        }
+        return false
     }
 }
 
@@ -302,6 +434,13 @@ impl Rectangle {
     }
 }
 
+impl Move for Rectangle {
+    fn r#move_n(&mut self, direction: Direction, n: isize) {
+        self.begin.r#move_n(direction, n);
+        self.end.r#move_n(direction, n);
+    }
+}
+
 impl Contains<&Point> for Rectangle {
     fn contains(&self, rhs: &Point) -> bool {
         rhs.x <= isize::max(self.end.x, self.begin.x) &&
@@ -338,7 +477,25 @@ impl Intersects<&Rectangle> for Rectangle {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Segment, Point};
+    use crate::{Segment, Point, Intersects};
+    
+    #[test]
+    fn segment_intersects() {
+        let s1 = Segment::new(Point::new(-1,0), Point::new(1,0));
+        let s2 = Segment::new(Point::new(0,-1), Point::new(0,1));
+        assert_eq!(s1.intersects(&s2), true);
+        assert_eq!(s2.intersects(&s1), true);
+    
+        let s1 = Segment::new(Point::new(-1,0), Point::new(1,0));
+        let s2 = Segment::new(Point::new(-1,0), Point::new(-1,1));
+        assert_eq!(s1.intersects(&s2), true);
+        assert_eq!(s2.intersects(&s1), true);
+        
+        let s1 = Segment::new(Point::new(-1,0), Point::new(1,0));
+        let s2 = Segment::new(Point::new(-2,0), Point::new(-2,1));
+        assert_eq!(s1.intersects(&s2), false);
+        assert_eq!(s2.intersects(&s1), false);
+    }
 
     #[test]
     fn segment_merge() {
@@ -435,7 +592,76 @@ mod tests {
     }
 }
 
-const TARGET: isize = 4000000;
+
+
+
+
+#[derive(Debug, Clone)]
+pub struct Rock {
+    segments: Vec<Segment>,
+}
+
+impl Rock {
+    pub const fn new(segments: Vec<Segment>) -> Self {
+        Self { segments }
+    }
+
+    pub fn points<'a>(&'a self) -> RockPointIterator<'a> {
+        RockPointIterator::new(self)
+    }
+}
+
+pub struct RockPointIterator<'a> {
+    rock: &'a Rock,
+    count: usize,
+}
+
+impl<'a> RockPointIterator<'a> {
+    pub fn new(rock: &'a Rock) -> Self {
+        Self { rock, count: 0 }
+    }
+}
+
+impl<'a> Iterator for RockPointIterator<'a> {
+    type Item = &'a Point;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut n: usize = 0;
+        for segment in self.rock.segments.iter() {
+            if n == self.count {
+                self.count += 1;
+                return Some(&segment.begin);
+            }
+            if n+1 == self.count {
+                self.count += 1;
+                return Some(&segment.end);
+            }
+            n += 2;
+        }
+        return None
+    }
+}
+
+impl Move for Rock {
+    fn r#move_n(&mut self, direction: Direction, n: isize) {
+        for segment in self.segments.iter_mut() {
+            segment.r#move_n(direction, n);
+        }
+    }
+}
+
+impl Intersects<&Rock> for Rock {
+    fn intersects(&self, rhs: &Rock) -> bool {
+        self.segments.iter().any(|s| {
+            rhs.segments.iter().any(|o| s.intersects(o))
+        })
+    }
+}
+
+const NB_ROCKS: usize = 2022;
+const RIGHT_SHIFT: isize = 2;
+const UP_SHIFT: isize = 3;
+const CAVE_WIDTH: isize = 7;
 
 fn main() {
     let args : Vec<_> = env::args().collect();
@@ -444,75 +670,86 @@ fn main() {
     let raw_string = String::from_utf8_lossy(&raw_input);
     let input : Vec<_> = raw_string.lines().collect();
 
-    let mut min = Point::MAX;
-    let mut max = Point::MIN;
-
-    let sensors_beacons : Vec<(Point,Point)> = input.iter().map(|line| {
-        let mut it = line.split(':');
-        if let Some(p) = it.next() {
-            let p = p.trim_start_matches("Sensor at");
-            let sensor: Point = p.parse().unwrap();
-            if sensor.x < min.x { min.x = sensor.x }
-            if sensor.y < min.y { min.y = sensor.y }
-            if sensor.x > max.x { max.x = sensor.x }
-            if sensor.y > max.y { max.y = sensor.y }
-            if let Some(b) = it.next() {
-                let b = b.trim();
-                let b = b.trim_start_matches("closest beacon is at");
-                let beacon: Point = b.parse().unwrap();
-                if beacon.x < min.x { min.x = beacon.x }
-                if beacon.y < min.y { min.y = beacon.y }
-                if beacon.x > max.x { max.x = beacon.x }
-                if beacon.y > max.y { max.y = beacon.y }
-                return (sensor, beacon);
-            } else {
-                panic!("Incorrect input");
-            }   
-        } else {
-            panic!("Incorrect input");
-        }
-    }).collect();
-
-    let mut potential_points = VecDeque::<Point>::new();
-    let area = Rectangle::new(Point::new(0,0), Point::new(TARGET,TARGET));
-
-    let mut found : Option<Point> = None;
-
-    for (s,b) in sensors_beacons.iter() {
-        let dist = Point::manhattan_distance(&s,&b) as isize;
-        for n in 0..dist+2 {
-            let p1 = Point::new(s.x+dist+1-n, s.y+n);
-            let p2 = Point::new(s.x-dist-1+n, s.y+n);
-            let p3 = Point::new(s.x+dist+1-n, s.y-n);
-            let p4 = Point::new(s.x-dist-1+n, s.y-n);
-            if area.contains(&p1) { potential_points.push_back(p1); }
-            if area.contains(&p2) { potential_points.push_back(p2); }
-            if area.contains(&p3) { potential_points.push_back(p3); }
-            if area.contains(&p4) { potential_points.push_back(p4); }
-        }
-        println!("Neighbors of sensor {:?}: {}", s, potential_points.len());
-        for point in potential_points.iter() {
-            let mut out_of_all_areas = true;
-            for (sensor, beacon) in sensors_beacons.iter() {
-                let dist = Point::manhattan_distance(sensor,beacon) as isize;
-                if Point::manhattan_distance(point,sensor) as isize <= dist {
-                    out_of_all_areas = false;
-                    break;
-                }
+    // Gas jets
+    let mut gas_jets = input.iter().flat_map(|line| {
+        line.chars().map(|c| {
+            match c {
+                '<' => Direction::Left,
+                '>' => Direction::Right,
+                _ => panic!("Corrupted input"),
             }
-            if out_of_all_areas {
-                found = Some(*point);
+        }).collect::<Vec<_>>()
+    }).cycle();
+
+    // Rocks
+    let rocks = vec![
+        Rock::new(vec![
+            Segment::new(Point::new(0,0), Point::new(3,0))
+        ]),
+        Rock::new(vec![
+            Segment::new(Point::new(0,-1), Point::new(2,-1)),
+            Segment::new(Point::new(1,-2), Point::new(1,0))
+        ]),
+        Rock::new(vec![
+            Segment::new(Point::new(0,0), Point::new(2,0)),
+            Segment::new(Point::new(2,-2), Point::new(2,0))
+        ]),
+        Rock::new(vec![
+            Segment::new(Point::new(0,-3), Point::new(0,0))
+        ]),
+        Rock::new(vec![
+            Segment::new(Point::new(0,-1), Point::new(1,-1)),
+            Segment::new(Point::new(0,0), Point::new(1,0)),
+        ])
+    ];
+    let rocks_generator = rocks.iter().cycle();
+
+
+
+    // Lets run the simulation
+    let mut max_height: isize = 0;
+    let mut fallen_rocks = Vec::<Rock>::new();
+    for rock in rocks_generator.take(NB_ROCKS) {
+        // Spawn a new rock
+        let mut rock = rock.clone();
+        // println!("Spawned rock: {:?}", rock);
+        rock.move_n(Direction::Right, RIGHT_SHIFT);
+        rock.move_n(Direction::Up, UP_SHIFT+max_height+1);
+        // println!("Falling rock: {:?}", rock);
+
+        // Simulate the fall
+        loop {
+            // println!("Falling rock: {:?}", rock);
+            // Move in the jet direction
+            let jet_direction = gas_jets.next().unwrap();
+            rock.r#move(jet_direction);
+            // Check if new position collides with anything (cave or other rocks)
+            if rock.points().any(|p| p.x < 0 || p.x >= CAVE_WIDTH)
+                || fallen_rocks.iter().any(|fallen_rock| rock.intersects(fallen_rock))
+            {
+                // Undo the move if a collision happen
+                rock.r#move(Direction::opposite(jet_direction));
+            }
+            // println!("Falling rock: {:?}", rock);
+            // Move down
+            rock.r#move(Direction::Down);
+            // Check if new position collides with anything (cave or other rocks)
+            if rock.points().any(|p| p.y >= 0)
+                || fallen_rocks.iter().any(|fallen_rock| rock.intersects(fallen_rock))
+            {
+                // Undo the mode
+                rock.r#move(Direction::Up);
+                // Settle the rock here
+                fallen_rocks.push(rock.clone());
+                // Compute the new max_height
+                max_height = isize::max(max_height, rock.points().reduce(|acc, p| if acc.y < p.y { acc } else { p }).unwrap().y*-1);
+                // Break the loop
                 break;
             }
         }
-        if found.is_some() {
-            break;
-        }
-        potential_points.clear();
-    };
-
-    println!("Answer:");
-    if let Some(point) = found {
-        println!("{:?}: {}", point, point.x*TARGET+point.y);
+        println!("Fallen rocks: {}, max_height: {}", fallen_rocks.len(), max_height);
+        // fallen_rocks.iter().for_each(|x| println!("{:?}", x));
     }
+
+    println!("Max height: {}", max_height);
 }

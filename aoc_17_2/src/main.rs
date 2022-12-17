@@ -196,7 +196,7 @@ fn main() {
                         }
                     }
                     // Found a cycle
-                    if found && current_y-data_y > 5 {
+                    if found && current_y-data_y > 10 {
                         cycle_height = current_y-data_y;
                         cycle_y = data_y;
                         start_y = data_y-cycle_height;

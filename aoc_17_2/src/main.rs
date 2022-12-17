@@ -36,7 +36,7 @@ impl Direction {
     }
 }
 
-const NB_ROCKS: usize = 1000000000000;
+const NB_ROCKS: usize = 1000000000000; // 1000 billions of rocks
 const RIGHT_SHIFT: usize = 2;
 const UP_SHIFT: usize = 3;
 const CAVE_WIDTH: usize = 7;

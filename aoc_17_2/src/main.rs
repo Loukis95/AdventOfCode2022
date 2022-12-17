@@ -1195,7 +1195,7 @@ impl BoundingBox for Rock {
     }
 }
 
-const NB_ROCKS: usize = 1000000000000;
+const NB_ROCKS: usize = 2022;
 const RIGHT_SHIFT: isize = 2;
 const UP_SHIFT: isize = 3;
 const CAVE_WIDTH: isize = 7;

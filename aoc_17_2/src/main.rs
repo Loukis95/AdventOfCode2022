@@ -1285,7 +1285,7 @@ fn main() {
             }
         }
         let comparisons = fallen_rocks.nearby_iter(&rock).count();
-        // println!("Fallen rocks: {}, comparisons: {}, max_height: {}", fallen_rocks.len(), comparisons, max_height);
+        println!("Fallen rocks: {}, comparisons: {}, max_height: {}", fallen_rocks.len(), comparisons, max_height);
         // println!("");
     }
 

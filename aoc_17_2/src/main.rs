@@ -36,7 +36,7 @@ impl Direction {
     }
 }
 
-const NB_ROCKS: usize = 2022;
+const NB_ROCKS: usize = 1000000000000;
 const RIGHT_SHIFT: usize = 2;
 const UP_SHIFT: usize = 3;
 const CAVE_WIDTH: usize = 7;
@@ -115,21 +115,26 @@ fn main() {
         Rock::new(vec![0x40, 0x40, 0x40, 0x40]),
         Rock::new(vec![0x60, 0x60]),
     ];
-    let rocks_generator = rocks.iter().cycle();
-
-
+    let mut rocks_generator = rocks.iter().cycle();
 
     // Lets run the simulation
+    let mut archive = Vec::<usize>::new();
     let mut progress: usize = 0;
     let mut max_height: usize = 0;
     let mut fallen_rocks = Vec::<u8>::new();
-    for rock in rocks_generator.take(NB_ROCKS) {
+
+    let mut cycle_y: usize = 0;         // Height where the first cycle starts
+    let mut start_y: usize = 0;         // Height before the beginning of the cycle
+    let mut cycle_height: usize = 0;    // Height of the cycle
+
+    for rock in &mut rocks_generator {
         // Spawn a new rock
         let mut rock = rock.clone();
         // println!("Spawned rock: {:?}", rock);
         rock.move_n(Direction::Right, RIGHT_SHIFT as isize);
         rock.move_n(Direction::Up, (UP_SHIFT+max_height+1) as isize);
         // println!("Falling rock: {:?}", rock);
+        // Always keep some empty space on top of other pieces
         for _ in fallen_rocks.len()-max_height..UP_SHIFT+5 {
             fallen_rocks.push(0);
         }
@@ -172,8 +177,69 @@ fn main() {
                 break;
             }
         }
+        archive.push(max_height);
         println!("Fallen rocks: {}, max_height: {}", progress, max_height);
+
+        // Search for a cycle in the data
+        let mut iterator = fallen_rocks.iter().enumerate().rev().skip_while(|(n, _d)| n > &max_height);
+        let mut data_iterator = iterator.clone().skip(1);
+        let mut found = false;
+        if let Some((current_y, current)) = iterator.next() {
+            while let Some((data_y, data)) = data_iterator.next() {
+                if data == current {
+                    let mut zip_iter = iterator.clone().zip(data_iterator.clone()).take(current_y-data_y);
+                    found = true;
+                    while let Some(((_current_y, current),(_data_y, data))) = zip_iter.next() {
+                        if current != data {
+                            found = false;
+                            break
+                        }
+                    }
+                    // Found a cycle
+                    if found && current_y-data_y > 5 {
+                        cycle_height = current_y-data_y;
+                        cycle_y = data_y;
+                        start_y = data_y-cycle_height;
+
+                        println!("Found a cycle from height {} to {}", current_y, data_y);
+                        println!("Starting height before first cycle: {}", start_y);
+                        for i in 0..cycle_height {
+                            println!("{:03}: {:#04x}  -  {:03}: {:#04x}", current_y-i, fallen_rocks[current_y-i], data_y-i, fallen_rocks[data_y-i]);
+                        }
+                        for i in 0..start_y {
+                            println!("           -  {:03}: {:#04x}", start_y-i, fallen_rocks[start_y-i]);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        if found {
+            break;
+        }
     }
 
+    println!("");
+    let nb_rocks_before_first_cycle = archive.iter().enumerate().find(|(_n, val)| **val == start_y).unwrap().0+1;
+    let nb_rocks_before_second_cycle = archive.iter().enumerate().find(|(_n, val)| **val == cycle_y).unwrap().0+1;
+    let nb_rocks_in_cycle = nb_rocks_before_second_cycle - nb_rocks_before_first_cycle;
+    println!("nb_rocks_before_first_cycle: {}", nb_rocks_before_first_cycle);
+    println!("nb_rocks_before_second_cycle: {}", nb_rocks_before_second_cycle);
+    println!("nb_rocks_in_cycle: {}", nb_rocks_in_cycle);
+
+    let sim_length = NB_ROCKS - nb_rocks_before_first_cycle;
+    let nb_cycles = sim_length / nb_rocks_in_cycle;
+    let remaining_rocks = sim_length % nb_rocks_in_cycle;
+
+    println!("nb_cycles: {}", nb_cycles);
+    println!("remaining_rocks: {}", remaining_rocks);
+    println!("");
+
+    println!("starting_height: {}", archive[nb_rocks_before_first_cycle-1]);
+    println!("nb_cycles*cycle_height: {}", nb_cycles*cycle_height);
+
+    let max_height = nb_cycles*cycle_height+archive[nb_rocks_before_first_cycle+remaining_rocks-1];
+
+    println!("");
     println!("Max height: {}", max_height);
 }

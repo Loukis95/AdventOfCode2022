@@ -450,6 +450,14 @@ impl Rectangle {
         point.x == point.y
     }
 
+    pub fn height(&self) -> isize {
+        self.upper_left_corner().abs_diff(&self.lower_left_corner()).y
+    }
+
+    pub fn width(&self) -> isize {
+        self.upper_left_corner().abs_diff(&self.upper_right_corner()).x
+    }
+
     pub fn upper_left_corner(&self) -> Point {
         Point::new(isize::min(self.end.x, self.begin.x), isize::min(self.end.y, self.begin.y))
     }
@@ -494,8 +502,8 @@ impl BoundingBox for Rectangle {
     }
 }
 
-impl Contains<&Point> for Rectangle {
-    fn contains(&self, rhs: &Point) -> bool {
+impl Contains<Point> for Rectangle {
+    fn contains(&self, rhs: Point) -> bool {
         rhs.x <= isize::max(self.end.x, self.begin.x) &&
         rhs.x >= isize::min(self.end.x, self.begin.x) &&
         rhs.y <= isize::max(self.end.y, self.begin.y) &&
@@ -504,16 +512,16 @@ impl Contains<&Point> for Rectangle {
 }
 impl Contains<&Segment> for Rectangle {
     fn contains(&self, rhs: &Segment) -> bool {
-        self.contains(&rhs.begin) && self.contains(&rhs.end)
+        self.contains(rhs.begin) && self.contains(rhs.end)
     }
 }
 impl Contains<&Rectangle> for Rectangle {
     fn contains(&self, rhs: &Rectangle) -> bool {
-        self.contains(&rhs.begin) && self.contains(&rhs.end)
+        self.contains(rhs.begin) && self.contains(rhs.end)
     }
 }
-impl Intersects<&Point> for Rectangle {
-    fn intersects(&self, rhs: &Point) -> bool {
+impl Intersects<Point> for Rectangle {
+    fn intersects(&self, rhs: Point) -> bool {
         self.contains(rhs)
     }
 }
@@ -888,6 +896,7 @@ pub struct DivTree<T> {
     threshold: usize,           // Max number of items in a cell
     area: Rectangle,            // Area covered by all items, used to calculate pivot when splitting the area
     nb_items: usize,            // Number of items in the quadtree
+    minimum_area_size: usize,   // Minimum area size (cannot subdivide to a smaller area)
 }
 
 impl<T> DivTree<T>
@@ -899,6 +908,7 @@ where T: BoundingBox + Clone
             pivot: Point::ORIGIN,
             parent_pivot: Point::ORIGIN,
             threshold: 20,
+            minimum_area_size: 20,
             area: Rectangle::new(Point::ORIGIN, Point::ORIGIN),
             nb_items: 0,
         }
@@ -913,7 +923,31 @@ where T: BoundingBox + Clone
     }
 
     pub fn push(&mut self, item: T) {
-        self.area = Rectangle::enclosing_area(&self.area, &item);
+        // adjust the area
+        if self.pivot == self.parent_pivot {
+            // print!("New area enclosing item: {:?}", item.bounding_box());
+            self.area = Rectangle::enclosing_area(&self.area, &item);
+            // println!(" => {:?}", self.area);
+        } else {
+            let bounding_box = item.bounding_box();
+            println!("Extending current area: {:?}", self.area);
+            println!("    item bounding box: {:?}", bounding_box);
+            self.area = Rectangle::enclosing_area(&self.area, &bounding_box);
+            println!("    enclosing area: {:?}", self.area);
+            let diff = self.pivot - self.parent_pivot;
+            println!("    pivot diff: {:?}", diff);
+            if diff.y <= 0 {
+                let min_y = self.parent_pivot.y;
+                if self.area.begin.y > min_y    { self.area.begin.y = min_y; }
+                if self.area.end.y > min_y      { self.area.end.y = min_y; }
+            }
+            else {
+                let max_y = self.parent_pivot.y;
+                if self.area.begin.y < max_y    { self.area.begin.y = max_y; }
+                if self.area.end.y < max_y      { self.area.end.y = max_y; }
+            }
+            println!("    new area: {:?}", self.area);
+        }
         self.nb_items += 1;
         // Insert in the quadtree
         match &mut self.cell {
@@ -972,21 +1006,50 @@ where T: BoundingBox + Clone
         let mut divisions = Vec::<DivTree<T>>::new();
         if let DivTreeCell::Cell(data) = &self.cell {
             if data.len() > self.threshold {
+                println!("Optimizing DivTree with {} items", data.len());
+                println!("Current area: {:?}", self.area);
+                let lower_left_corner = self.area.lower_left_corner();
+                let upper_right_corner = self.area.upper_right_corner();
+                // Calculating a new pivot in the middle of the current area
+                let next_pivot = lower_left_corner + (upper_right_corner - lower_left_corner) / 2;
+                println!("Next pivot: {:?}", next_pivot);
+                // Calculating temporary pivot for 1st child cell
+                let pivot0 = next_pivot + (upper_right_corner - next_pivot) / 2;
+                let area0 = Rectangle::enclosing_area(
+                    &Rectangle::new(self.area.upper_left_corner(), self.area.upper_right_corner()),
+                    &next_pivot
+                );
+                println!("1st child pivot: {:?}", pivot0);
+                println!("1st child area: {:?}", area0);
+                let pivot1 = next_pivot - (upper_right_corner - next_pivot) / 2;
+                let area1 = Rectangle::enclosing_area(
+                    &Rectangle::new(self.area.lower_left_corner(), self.area.lower_right_corner()),
+                    &next_pivot
+                );
+                println!("2nd child pivot: {:?}", pivot1);
+                println!("2nd child area: {:?}", area1);
+                if area0.height() <= self.minimum_area_size as isize ||
+                    area1.height() <= self.minimum_area_size as isize
+                {
+                    println!("Aborting optimization because child areas are too small");
+                    return;
+                }
+                self.pivot = next_pivot;
                 all_data = data.clone();
-                let upper_left_corner = self.area.upper_left_corner();
-                let lower_right_corner = self.area.lower_right_corner();
-                let pivot0 = (upper_left_corner - self.pivot) / 2;
-                let pivot1 = (lower_right_corner - self.pivot) / 2;
                 divisions.push(DivTree::<T>::builder()
                     .with_threshold(self.threshold)
                     .with_parent_pivot(self.pivot)
+                    .with_minimum_area_size(self.minimum_area_size)
                     .with_pivot(pivot0)
+                    .with_area(area0)
                     .finish()
                 );
                 divisions.push(DivTree::<T>::builder()
                     .with_threshold(self.threshold)
                     .with_parent_pivot(self.pivot)
+                    .with_minimum_area_size(self.minimum_area_size)
                     .with_pivot(pivot1)
+                    .with_area(area1)
                     .finish()
                 );
             } else {
@@ -997,6 +1060,7 @@ where T: BoundingBox + Clone
             return;
         }
         // Now push data to the new divided tree
+        self.nb_items = 0;
         self.cell = DivTreeCell::Div(divisions);
         for data in all_data.into_iter() {
             self.push(data);
@@ -1028,6 +1092,16 @@ where T: BoundingBox + Clone
 
     pub fn with_parent_pivot(mut self, parent_pivot: Point) -> Self {
         self.tree.parent_pivot = parent_pivot;
+        self
+    }
+
+    pub fn with_area(mut self, area: Rectangle) -> Self {
+        self.tree.area = area;
+        self
+    }
+
+    pub fn with_minimum_area_size(mut self, minimum_area_size: usize) -> Self {
+        self.tree.minimum_area_size = minimum_area_size;
         self
     }
 
@@ -1115,7 +1189,7 @@ impl BoundingBox for Rock {
     }
 }
 
-const NB_ROCKS: usize = 2022;
+const NB_ROCKS: usize = 25;
 const RIGHT_SHIFT: isize = 2;
 const UP_SHIFT: isize = 3;
 const CAVE_WIDTH: isize = 7;
@@ -1204,8 +1278,9 @@ fn main() {
                 break;
             }
         }
-        println!("Fallen rocks: {}, max_height: {}", fallen_rocks.len(), max_height);
-        // fallen_rocks.iter().for_each(|x| println!("{:?}", x));
+        let comparisons = fallen_rocks.nearby_iter(&rock).count();
+        println!("Fallen rocks: {}, comparisons: {}, max_height: {}", fallen_rocks.len(), comparisons, max_height);
+        println!("");
     }
 
     println!("Max height: {}", max_height);

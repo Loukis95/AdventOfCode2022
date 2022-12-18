@@ -354,7 +354,7 @@ fn main() {
 
 
 
-    // Inspect cluster neighbours to find what clusters are connected to the air
+    // Inspect cluster neighbours to find which clusters are connected to the air
     let mut interior_points = Vec::<Point>::new();
     for (n, cluster_neighbour) in list_of_cluster_neighbours.into_iter().enumerate() {
         if cluster_neighbour.iter().all(|neighbour| {
@@ -372,6 +372,9 @@ fn main() {
 
     println!("Interior points: {}", interior_points.len());
     // println!("{:?}", interior_points);
+
+
+
 
     // Total of interior faces
     let total_interior_faces: usize = interior_points.iter().fold(0, |acc, p| {

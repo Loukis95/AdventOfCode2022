@@ -175,205 +175,61 @@ fn main() {
     });
 
     // 3D grid
-    let mut list_of_neighbours = Vec::<Point>::new();
     let mut grid: Vec<Vec<Vec<u8>>> = vec![vec![vec![0; max.x as usize]; max.y as usize]; max.z as usize];
     for p in points.iter() {
         // Register points in the grid
         grid[p.z as usize][p.y as usize][p.x as usize] = 1;
-        // Lambda test
+    }
+
+
+
+    let mut to_visit = vec![Point::ORIGIN];
+    while let Some(point) = to_visit.pop() {// Lambda test
         let mut fn_test_and_push = |neighbour: Point| {
             if neighbour.x >= 0 && neighbour.y >= 0 && neighbour.z >= 0
             && neighbour.x < max.x && neighbour.y < max.y && neighbour.z < max.z
             {
-                list_of_neighbours.push(neighbour)
+                to_visit.push(neighbour)
             }
         };
-        // 1st neighbour
-        let neighbour = Point::new(p.x-1, p.y, p.z);
-        fn_test_and_push(neighbour);
-        // 2nd neighbour
-        let neighbour = Point::new(p.x+1, p.y, p.z);
-        fn_test_and_push(neighbour);
-        // 3rd neighbour
-        let neighbour = Point::new(p.x, p.y-1, p.z);
-        fn_test_and_push(neighbour);
-        // 4th neighbour
-        let neighbour = Point::new(p.x, p.y+1, p.z);
-        fn_test_and_push(neighbour);
-        // 5th neighbour
-        let neighbour = Point::new(p.x, p.y, p.z-1);
-        fn_test_and_push(neighbour);
-        // 6th neighbour
-        let neighbour = Point::new(p.x, p.y, p.z+1);
-        fn_test_and_push(neighbour);
-    }
-    
-    let mut neighbour_iterator = list_of_neighbours.iter();
-    while let Some(p) = neighbour_iterator.next() {
-        // Lambda check if outside the area
-        let is_outside = |point: Point| -> bool {
-            if point.x < min.x || point.y < min.y || point.z < min.z
-            || point.x >= max.x || point.y >= max.y || point.z >= max.z
-            || grid[point.z as usize][point.y as usize][point.x as usize] == 2
-            {
-                true
-            }
-            else
-            {
-                false
-            }
-        };
-    
-        // Lambda check if is blocked by neighbour
-        let is_blocked = |point: Point| -> bool {
-            let value = grid[point.z as usize][point.y as usize][point.x as usize];
-            value == 1
-        };
-        // Skip obvious blocking values
-        if grid[p.z as usize][p.y as usize][p.x as usize] == 1 { continue; }
-        // Try to reach max.x from this point
-        let mut test = *p;
-        let mut diff = Point::new(1,0,0);
-        let mut counter = 0;
-        loop {
-            test = diff + &test;
-            if is_outside(test) {
-                grid[p.z as usize][p.y as usize][p.x as usize] = 2;
-                // println!("Removed ({}) because ({}) is outside", p, test);
-                break;
-            }
-            if is_blocked(test) {
-                test = *p;
-                if counter == 0 {
-                    // Try to reach min.x from this point
-                    diff = Point::new(-1,0,0);
-                }
-                if counter == 1 {
-                    // Try to reach max.y from this point
-                    diff = Point::new(0,1,0);
-                }
-                if counter == 2 {
-                    // Try to reach min.y from this point
-                    diff = Point::new(0,-1,0);
-                }
-                if counter == 3 {
-                    // Try to reach max.z from this point
-                    diff = Point::new(0,0,1);
-                }
-                if counter == 4 {
-                    // Try to reach min.z from this point
-                    diff = Point::new(0,0,-1);
-                }
-                if counter == 5 {
-                    grid[p.z as usize][p.y as usize][p.x as usize] = 3;
-                    break;
-                }
-                counter += 1;
-            }
+        if grid[point.z as usize][point.y as usize][point.x as usize] == 0 {
+            grid[point.z as usize][point.y as usize][point.x as usize] = 2;
+            // 1st neighbour
+            let neighbour = Point::new(point.x-1, point.y, point.z);
+            fn_test_and_push(neighbour);
+            // 2nd neighbour
+            let neighbour = Point::new(point.x+1, point.y, point.z);
+            fn_test_and_push(neighbour);
+            // 3rd neighbour
+            let neighbour = Point::new(point.x, point.y-1, point.z);
+            fn_test_and_push(neighbour);
+            // 4th neighbour
+            let neighbour = Point::new(point.x, point.y+1, point.z);
+            fn_test_and_push(neighbour);
+            // 5th neighbour
+            let neighbour = Point::new(point.x, point.y, point.z-1);
+            fn_test_and_push(neighbour);
+            // 6th neighbour
+            let neighbour = Point::new(point.x, point.y, point.z+1);
+            fn_test_and_push(neighbour);
         }
     }
+    
 
     // Make a list of maybe iterior points
-    let mut maybe_interior_points = Vec::<Point>::new();
+    let mut interior_points = Vec::<Point>::new();
     for x in min.x..max.x {
         for y in min.y..max.y {
             for z in min.z..max.z {
-                if grid[z as usize][y as usize][x as usize] == 3 {
-                    maybe_interior_points.push(Point::new(x,y,z));
-                    grid[z as usize][y as usize][x as usize] = 0;
+                if grid[z as usize][y as usize][x as usize] == 0 {
+                    interior_points.push(Point::new(x,y,z));
                 }
             }
         }
     }
-
-    println!("Maybe Interior points: {}", maybe_interior_points.len());
-    // println!("{:?}", maybe_interior_points);
-
-    // Group potential interior points in clusters
-    let mut interior_points_clusters = Vec::<Vec<Point>>::new();
-    let mut iterator = maybe_interior_points.iter();
-    while let Some(this) = iterator.next() {
-        if !interior_points_clusters.iter().any(|cl| cl.contains(this)) {
-            let mut cluster = vec![*this];
-            for other in maybe_interior_points.iter() {
-                if !cluster.contains(&other) {
-                    for p in cluster.iter() {
-                        if Point::manhattan_distance(other, p) == 1 {
-                            cluster.push(*other);
-                            break;
-                        }
-                    }
-                }
-            }
-            interior_points_clusters.push(cluster);
-        }
-    }
-    
-    println!("Interior points clusters: {}", interior_points_clusters.len());
-    // println!("{:?}", interior_points_clusters);
-
-
-
-    // Find cluster neighbours
-    let mut list_of_cluster_neighbours = Vec::<Vec<Point>>::new();
-    for cluster in interior_points_clusters.iter() {
-        let mut cluster_neighbours = Vec::<Point>::new();
-        for p in cluster.iter() {
-            // Register points in the grid
-            grid[p.z as usize][p.y as usize][p.x as usize] = 1;
-            // Lambda test
-            let mut fn_test_and_push = |neighbour: Point| {
-                if neighbour.x >= 0 && neighbour.y >= 0 && neighbour.z >= 0
-                && neighbour.x < max.x && neighbour.y < max.y && neighbour.z < max.z
-                {
-                    cluster_neighbours.push(neighbour)
-                }
-            };
-            // 1st neighbour
-            let neighbour = Point::new(p.x-1, p.y, p.z);
-            fn_test_and_push(neighbour);
-            // 2nd neighbour
-            let neighbour = Point::new(p.x+1, p.y, p.z);
-            fn_test_and_push(neighbour);
-            // 3rd neighbour
-            let neighbour = Point::new(p.x, p.y-1, p.z);
-            fn_test_and_push(neighbour);
-            // 4th neighbour
-            let neighbour = Point::new(p.x, p.y+1, p.z);
-            fn_test_and_push(neighbour);
-            // 5th neighbour
-            let neighbour = Point::new(p.x, p.y, p.z-1);
-            fn_test_and_push(neighbour);
-            // 6th neighbour
-            let neighbour = Point::new(p.x, p.y, p.z+1);
-            fn_test_and_push(neighbour);
-        }
-        list_of_cluster_neighbours.push(cluster_neighbours);
-    }
-    println!("Lists of cluster neighbours: {}", list_of_cluster_neighbours.len());
-
-
-
-    // Inspect cluster neighbours to find which clusters are connected to the air
-    let mut interior_points = Vec::<Point>::new();
-    for (n, cluster_neighbour) in list_of_cluster_neighbours.into_iter().enumerate() {
-        if cluster_neighbour.iter().all(|neighbour| {
-            grid[neighbour.z as usize][neighbour.y as usize][neighbour.x as usize] == 1
-        })
-        {
-            // This cluster is interior
-            for interior_point in interior_points_clusters[n].iter() {
-                interior_points.push(*interior_point);
-            }
-        }
-    }
-
-
 
     println!("Interior points: {}", interior_points.len());
     // println!("{:?}", interior_points);
-
-
 
 
     // Total of interior faces

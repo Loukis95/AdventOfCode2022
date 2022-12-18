@@ -100,11 +100,13 @@ impl Ord for ShortNode {
 
 fn shortest_path_to_valve(target: &str, from: &str, graph: &HashMap<String,Valve>) -> Vec<String> {
     let mut to_visit = BinaryHeap::<Reverse<ShortNode>>::new();
-    let mut found: Option<ShortNode> = None;
+    let mut visited = Vec::<(String, usize)>::new();
+    let found: Option<ShortNode>;
     let start = ShortNode{name: from.to_string(), path: Vec::<String>::new()};
     to_visit.push(Reverse(start));
     loop {
         let current = to_visit.pop().unwrap().0;
+        visited.push((current.name.clone(), current.path.len()));
         if &current.name == target {
             found = Some(current);
             break;
@@ -113,8 +115,13 @@ fn shortest_path_to_valve(target: &str, from: &str, graph: &HashMap<String,Valve
         for nearby_valve in nearby_valves {
             let mut path = current.path.clone();
             path.push(current.name.clone());
+            let path_length = path.len();
             let next = ShortNode{name: nearby_valve.clone(), path};
-            to_visit.push(Reverse(next));
+            if visited.iter().all(|(valve, cost)| valve != nearby_valve || cost > &path_length) 
+            && to_visit.iter().all(|Reverse(node)| &node.name != nearby_valve || node.path.len() > path_length)
+            {
+                to_visit.push(Reverse(next));
+            }
         }
     }
     let found = found.unwrap();

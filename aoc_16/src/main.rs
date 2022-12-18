@@ -173,12 +173,14 @@ fn main() {
     };
 
     let mut to_visit = BinaryHeap::<Node>::new();
+    let mut visited = Vec::<(String, usize, usize)>::new(); // < Node name, (step, heuristic)>
     let mut found: Option<Node> = None;
     to_visit.push(start);
     while !to_visit.is_empty() {
         let current = to_visit.pop().unwrap();
+        visited.push((current.name.clone(), current.stack.len(), current.heuristic));
         {
-            // println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
+            println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
             // for (n, step) in current.stack.iter().enumerate() {
             //     println!("======== Step {} ========", n);
             //     match &step {
@@ -251,7 +253,11 @@ fn main() {
             next.cost = cost(&next, &previous, &graph);
             next.heuristic = heuristic(&next, &previous, &graph);
             // println!("Push to queue: {:?}", next.action);
-            to_visit.push(next);
+            if visited.iter().all(|(name, step, h)| name != &next.name || step != &next.stack.len() || h < &next.heuristic) 
+            && to_visit.iter().all(|other| &other.name != &next.name || other.stack.len() != next.stack.len() || &other.heuristic < &next.heuristic)
+            {
+                to_visit.push(next);
+            }
         }
         // Or we can just chill
         if closed.len() == 0 {

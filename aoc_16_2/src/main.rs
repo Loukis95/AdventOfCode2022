@@ -1,6 +1,6 @@
-use std::{env, fs, collections::{HashMap, BinaryHeap, VecDeque}, cmp::Reverse};
+use std::{env, fs, collections::{HashMap, BinaryHeap}, cmp::Reverse, path};
 
-const DEPTH_LIMIT: usize = 30;
+const DEPTH_LIMIT: usize = 26;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Valve {
@@ -18,10 +18,14 @@ enum Action {
 
 #[derive(Debug, Clone)]
 struct Node {
-    name: String,
+    my_position: String,
+    my_path_to_destination: Vec<String>,
+    my_action: Action,
+    elephant_position: String,
+    elephant_path_to_destination: Vec<String>,
+    elephant_action: Action,
+    stack: Vec<(Action, Action)>,   // (my action, elephant action)
     open_valves: Vec<String>,
-    action: Action,
-    stack: Vec<Action>,
     flow_tick: usize,
     cost: usize,
     heuristic: usize,
@@ -52,14 +56,23 @@ fn cost(_this: &Node, from: &Node, _graph: &HashMap<String, Valve>) -> usize {
 }
 
 fn heuristic(this: &Node, from: &Node, graph: &HashMap<String, Valve>) -> usize {
-    match &this.action {
+    let my_h = match &this.my_action {
         Action::OpenValve(s) => {
             let flow_rate = graph.get(s).unwrap().flow_rate;
             let depth = this.stack.len();
             from.heuristic + (DEPTH_LIMIT - depth) * flow_rate
         }
         _ => from.heuristic
-    }
+    };
+    let elephant_h = match &this.elephant_action {
+        Action::OpenValve(s) => {
+            let flow_rate = graph.get(s).unwrap().flow_rate;
+            let depth = this.stack.len();
+            from.heuristic + (DEPTH_LIMIT - depth) * flow_rate
+        }
+        _ => from.heuristic
+    };
+    my_h + elephant_h
 }
 
 fn closed_valves(open_valves: &[String], graph: &HashMap<String,Valve>) -> Vec<String> {
@@ -163,38 +176,38 @@ fn main() {
 
     // Create the starting node
     let start = Node {
-        name: "AA".to_string(),
+        my_position: "AA".to_string(),
+        my_path_to_destination: Default::default(),
+        my_action: Action::WaitAt("AA".to_string()),
+        elephant_position: "AA".to_string(),
+        elephant_path_to_destination: Default::default(),
+        elephant_action: Action::WaitAt("AA".to_string()),
+        stack: Vec::<(Action, Action)>::new(),
         open_valves: Vec::<String>::new(),
-        action: Action::WaitAt("AA".to_string()),
-        stack: Vec::<Action>::new(),
         flow_tick: 0,
         cost: 0,
         heuristic: 0
     };
 
     let mut to_visit = BinaryHeap::<Node>::new();
-    let mut visited = Vec::<(String, usize, usize)>::new(); // < Node name, (step, heuristic)>
+    let mut visited = Vec::<(String, String, usize, usize)>::new(); // < Node name, (step, heuristic)>
     let mut found: Option<Node> = None;
     to_visit.push(start);
     while !to_visit.is_empty() {
         let current = to_visit.pop().unwrap();
-        visited.push((current.name.clone(), current.stack.len(), current.heuristic));
+        visited.push((
+            current.my_position.clone(),
+            current.elephant_position.clone(),
+            current.stack.len(),
+            current.heuristic
+        ));
         {
             println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
-            // for (n, step) in current.stack.iter().enumerate() {
-            //     println!("======== Step {} ========", n);
-            //     match &step {
-            //         Action::WaitAt(s) => println!("Chill at node {}", s),
-            //         Action::OpenValve(s) => println!("Open valve {}", s),
-            //         Action::MoveToValve(s) => println!("Move to valve {}", s),
-            //     }
-            // }
-            // println!("");
         }
-        // Stop condition
+        // Stop condition => Stop when list is empty to find the best solution
         if current.stack.len() >= DEPTH_LIMIT {
             let mut stack = current.stack.clone();
-            stack.push(current.action.clone());
+            stack.push((current.my_action.clone(), current.elephant_action.clone()));
             let mut end = current.clone();
             end.stack = stack;
             if let Some(tmp) = &found {
@@ -206,6 +219,7 @@ fn main() {
             }
             continue;
         }
+        
         // find closed valves for current state
         let closed = closed_valves(&current.open_valves, &graph);
         // println!("Closed valves: {:?}", closed);
@@ -215,43 +229,33 @@ fn main() {
             let shortest_path = shortest_path_to_valve(closed_valve, &current.name, &graph);
             // println!(" => {:?}", shortest_path);
             let mut stack = current.stack.clone();
-            stack.push(current.action.clone());
+            stack.push((current.my_action.clone(),current.elephant_action.clone()));
             let mut previous = current.clone();
             // Simulate the steps to reach this valve
-            for step in shortest_path.iter().skip(1) {
-                let mut next = Node { 
-                    name: step.clone(),
-                    open_valves: previous.open_valves.clone(),
-                    action: Action::MoveToValve(step.clone()),
-                    stack: stack.clone(), 
-                    flow_tick: previous.flow_tick,
-                    cost: 0,
-                    heuristic: 0,
-                };
-                next.cost = cost(&next, &previous, &graph);
-                next.heuristic = heuristic(&next, &previous, &graph);
-
-                if next.stack.len() >= DEPTH_LIMIT { break; }
-
-                stack.push(next.action.clone());
-                // println!("Push to stack: {:?}", next.action);
-                previous = next;
+            let mut path_iterator = shortest_path.iter().skip(1);
+            let next_move = path_iterator.next().unwrap();
+            let path = path_iterator.cloned().collect::<Vec<_>>();
+            if !path.is_empty() {
+                path.push(path.last().unwrap().clone());
+            } else {
+                path.push(next_move.clone());
             }
-            // Open the closed valve
-            let mut open_valves = previous.open_valves.clone();
-            open_valves.push(previous.name.clone());
-            let flow_tick = previous.flow_tick + graph.get(&previous.name).unwrap().flow_rate;
-            let mut next = Node { 
-                name: previous.name.clone(),
-                open_valves,
-                action: Action::OpenValve(previous.name.clone()),
-                stack: stack,
-                flow_tick,
+            let mut next = Node {
+                my_position: next_move.clone(),
+                my_path_to_destination: path,
+                my_action: Action::MoveToValve(next_move.clone()),
+                elephant_position: String,
+                elephant_path_to_destination: Vec<String>,
+                elephant_action: Action,
+                open_valves: previous.open_valves.clone(),
+                stack: stack.clone(), 
+                flow_tick: previous.flow_tick,
                 cost: 0,
                 heuristic: 0,
             };
             next.cost = cost(&next, &previous, &graph);
             next.heuristic = heuristic(&next, &previous, &graph);
+
             // println!("Push to queue: {:?}", next.action);
             if visited.iter().all(|(name, step, h)| name != &next.name || step != &next.stack.len() || h < &next.heuristic) 
             && to_visit.iter().all(|other| &other.name != &next.name || other.stack.len() != next.stack.len() || &other.heuristic < &next.heuristic)
@@ -277,6 +281,31 @@ fn main() {
             next.cost = cost;
             next.heuristic = heuristic;
             // Add nodes to the list
+            to_visit.push(next);
+        }
+
+
+
+        todo!();
+        // Open the closed valve
+        let mut open_valves = previous.open_valves.clone();
+        open_valves.push(previous.name.clone());
+        let flow_tick = previous.flow_tick + graph.get(&previous.name).unwrap().flow_rate;
+        let mut next = Node { 
+            name: previous.name.clone(),
+            open_valves,
+            action: Action::OpenValve(previous.name.clone()),
+            stack: stack,
+            flow_tick,
+            cost: 0,
+            heuristic: 0,
+        };
+        next.cost = cost(&next, &previous, &graph);
+        next.heuristic = heuristic(&next, &previous, &graph);
+        // println!("Push to queue: {:?}", next.action);
+        if visited.iter().all(|(name, step, h)| name != &next.name || step != &next.stack.len() || h < &next.heuristic) 
+        && to_visit.iter().all(|other| &other.name != &next.name || other.stack.len() != next.stack.len() || &other.heuristic < &next.heuristic)
+        {
             to_visit.push(next);
         }
     }

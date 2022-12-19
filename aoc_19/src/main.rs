@@ -52,7 +52,7 @@ impl Node {
         + next.nb_geode_robots * 1000;
         // Negative reward if building more robots than necessary
         if next.nb_clay_robots >= needed_resource_by_min.clay {
-            result = result.saturating_sub((next.nb_clay_robots - needed_resource_by_min.clay) * 100);
+            result = result.saturating_sub((next.nb_clay_robots - needed_resource_by_min.clay) * 10);
         }
         // Return the score
         result

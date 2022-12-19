@@ -1,4 +1,4 @@
-use std::{env, fs, collections::{BinaryHeap}, ops::{Sub, SubAssign, Add, AddAssign}};
+use std::{env, fs, collections::{BinaryHeap}, ops::{Sub, SubAssign, Add, AddAssign, Mul, MulAssign, DivAssign, Div}};
 use regex::Regex;
 
 const TIME_LIMIT: usize = 24;
@@ -35,12 +35,27 @@ impl Node {
         next.available_resources.geode
     }
 
-    fn heuristic(next: &State, _previous: &Node, _blueprint: &Blueprint) -> usize {
-        0
-        + 1    * next.nb_ore_robots
-        + 1    * next.nb_clay_robots
-        + 1000 * next.nb_obsidian_robots
-        + 10000 * next.nb_geode_robots
+    fn heuristic(next: &State, _previous: &Node, bp: &Blueprint) -> usize {
+        // Compute the minimum resource required by minute to build a new geode robot every turn
+        let needed_resource_by_min = {
+            bp.ore_robot_cost
+            .max(bp.clay_robot_cost)
+            .max(bp.obsidian_robot_cost)
+            .max(bp.geode_robot_cost)
+            / 4                             // *every 4 turns
+        };
+        let mut result = 0
+        // It is useless to build more robot than necessary for intermediate resources
+        + usize::min(next.nb_ore_robots, needed_resource_by_min.ore+1)
+        + usize::min(next.nb_clay_robots, needed_resource_by_min.clay+1) * 10
+        + usize::min(next.nb_obsidian_robots, needed_resource_by_min.obsidian+1) * 100
+        + next.nb_geode_robots * 1000;
+        // Negative reward if building more robots than necessary
+        if next.nb_clay_robots > needed_resource_by_min.clay+1 {
+            result -= (next.nb_clay_robots - needed_resource_by_min.clay-1) * 10;
+        }
+        // Return the score
+        result
     }
 }
 
@@ -70,6 +85,26 @@ struct Resources {
     clay: usize,
     obsidian: usize,
     geode: usize,
+}
+
+impl Resources {
+    fn max(&self, rhs: Resources) -> Resources {
+        Resources {
+            ore: self.ore.max(rhs.ore),
+            clay: self.clay.max(rhs.clay),
+            obsidian: self.obsidian.max(rhs.obsidian),
+            geode: self.geode.max(rhs.geode),
+        }
+    }
+    
+    fn min(&self, rhs: Resources) -> Resources {
+        Resources {
+            ore: self.ore.min(rhs.ore),
+            clay: self.clay.min(rhs.clay),
+            obsidian: self.obsidian.min(rhs.obsidian),
+            geode: self.geode.min(rhs.geode),
+        }
+    }
 }
 
 impl PartialOrd for Resources {
@@ -130,7 +165,41 @@ impl AddAssign<Resources> for Resources {
     }
 }
 
+impl Mul<usize> for Resources {
+    type Output = Resources;
 
+    fn mul(mut self, rhs: usize) -> Self::Output {
+        self *= rhs;
+        self
+    }
+}
+
+impl MulAssign<usize> for Resources {
+    fn mul_assign(&mut self, rhs: usize) {
+        self.ore *= rhs;
+        self.clay *= rhs;
+        self.obsidian *= rhs;
+        self.geode *= rhs;
+    }
+}
+
+impl Div<usize> for Resources {
+    type Output = Resources;
+
+    fn div(mut self, rhs: usize) -> Self::Output {
+        self *= rhs;
+        self
+    }
+}
+
+impl DivAssign<usize> for Resources {
+    fn div_assign(&mut self, rhs: usize) {
+        self.ore *= rhs;
+        self.clay *= rhs;
+        self.obsidian *= rhs;
+        self.geode *= rhs;
+    }
+}
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

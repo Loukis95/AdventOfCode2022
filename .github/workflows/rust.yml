@@ -10,7 +10,7 @@ env:
 
 jobs:
 
-  aoc_019:
+  aoc_19:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -23,7 +23,7 @@ jobs:
 
     - name: Build
       run: cargo build
-      working-directory: aoc_019
+      working-directory: aoc_19
     - name: Run
       run: cargo run -- src/input.txt
-      working-directory: aoc_019
+      working-directory: aoc_19

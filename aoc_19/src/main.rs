@@ -47,12 +47,12 @@ impl Node {
         let mut result = 0
         // It is useless to build more robot than necessary for intermediate resources
         + usize::min(next.nb_ore_robots, needed_resource_by_min.ore+1)
-        + usize::min(next.nb_clay_robots, needed_resource_by_min.clay+1) * 10
+        + usize::min(next.nb_clay_robots, needed_resource_by_min.clay) * 10
         + usize::min(next.nb_obsidian_robots, needed_resource_by_min.obsidian+1) * 100
         + next.nb_geode_robots * 1000;
         // Negative reward if building more robots than necessary
-        if next.nb_clay_robots > needed_resource_by_min.clay+1 {
-            result -= (next.nb_clay_robots - needed_resource_by_min.clay-1) * 10;
+        if next.nb_clay_robots >= needed_resource_by_min.clay {
+            result = result.saturating_sub((next.nb_clay_robots - needed_resource_by_min.clay) * 100);
         }
         // Return the score
         result
@@ -187,17 +187,17 @@ impl Div<usize> for Resources {
     type Output = Resources;
 
     fn div(mut self, rhs: usize) -> Self::Output {
-        self *= rhs;
+        self /= rhs;
         self
     }
 }
 
 impl DivAssign<usize> for Resources {
     fn div_assign(&mut self, rhs: usize) {
-        self.ore *= rhs;
-        self.clay *= rhs;
-        self.obsidian *= rhs;
-        self.geode *= rhs;
+        self.ore /= rhs;
+        self.clay /= rhs;
+        self.obsidian /= rhs;
+        self.geode /= rhs;
     }
 }
 
@@ -477,6 +477,7 @@ fn main() {
             println!("Obsidian robots: {}", state.nb_obsidian_robots);
             println!("Geode robots: {}", state.nb_geode_robots);
             println!("{:?}", state.available_resources);
+            println!("Heuristic: {}", Node::heuristic(&state, &node, &blueprint));
         }
         println!("");
         println!("Total resources for blueprint {}: {:?}", blueprint.number, node.stack.last().unwrap().available_resources);

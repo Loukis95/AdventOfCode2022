@@ -31,20 +31,16 @@ impl Ord for Node {
 }
 
 impl Node {
-    fn score(next: &State, _previous: &Node) -> usize {
+    fn score(next: &State, _previous: &Node, _blueprint: &Blueprint) -> usize {
         next.available_resources.geode
     }
 
-    fn heuristic(next: &State, _previous: &Node) -> usize {
+    fn heuristic(next: &State, _previous: &Node, _blueprint: &Blueprint) -> usize {
         0
-        + 1  * next.nb_ore_robots
-        + 2  * next.nb_clay_robots
-        + 3  * next.nb_obsidian_robots
-        + 4  * next.nb_geode_robots
-        + 5  * next.available_resources.ore
-        + 6  * next.available_resources.clay
-        + 7  * next.available_resources.obsidian
-        + 8  * next.available_resources.geode
+        + 1    * next.nb_ore_robots
+        + 1    * next.nb_clay_robots
+        + 1000 * next.nb_obsidian_robots
+        + 10000 * next.nb_geode_robots
     }
 }
 
@@ -339,6 +335,9 @@ fn main() {
         // println!("");
         // =============== TEST ===============
 
+        // Show the blueprint being used
+        println!("{:?}", blueprint);
+
         // Data for the search
         let mut to_visit = BinaryHeap::<Node>::new();       // Priority queue of nodes to visit
         let mut visited = Vec::<ShortNode>::new();          // A list of the best node used to avoid searching non-promising states
@@ -382,12 +381,12 @@ fn main() {
                 stack.push(next_state.clone());
                 let next_node = Node {
                     stack,
-                    score: Node::score(&next_state, &current_node),
-                    heuristic: Node::heuristic(&next_state, &current_node),
+                    score: Node::score(&next_state, &current_node, &blueprint),
+                    heuristic: Node::heuristic(&next_state, &current_node, &blueprint),
                 };
                 // Add this node to the search if and only if no other node are better
-                if visited.iter().all(|short_node| short_node.state.minute != next_state.minute || short_node.heuristic < next_node.heuristic)
-                && to_visit.iter().all(|other| other.stack.last().unwrap().minute != next_state.minute || other.heuristic < next_node.heuristic)
+                if visited.iter().all(|short_node| short_node.state.minute != next_state.minute || short_node.heuristic <= next_node.heuristic)
+                && to_visit.iter().all(|other| other.stack.last().unwrap().minute != next_state.minute || other.heuristic <= next_node.heuristic)
                 {
                     to_visit.push(next_node);
                 }
@@ -411,7 +410,8 @@ fn main() {
             println!("{:?}", state.available_resources);
         }
         println!("");
-        println!("Total geodes for blueprint {}: {}", blueprint.number, node.score);
+        println!("Total resources for blueprint {}: {:?}", blueprint.number, node.stack.last().unwrap().available_resources);
+        println!("Quality of blueprint {}: {:?}", blueprint.number, node.stack.last().unwrap().available_resources.geode*blueprint.number);
 
     } // blueprint loop
 

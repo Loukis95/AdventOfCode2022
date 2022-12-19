@@ -1,4 +1,4 @@
-use std::{env, fs, collections::{HashMap, BinaryHeap, VecDeque}, cmp::Reverse, ops::{Sub, SubAssign, Add, AddAssign}};
+use std::{env, fs, collections::{BinaryHeap}, ops::{Sub, SubAssign, Add, AddAssign}};
 use regex::Regex;
 
 const TIME_LIMIT: usize = 24;
@@ -31,12 +31,20 @@ impl Ord for Node {
 }
 
 impl Node {
-    fn score(next: &State, previous: &Node) -> usize {
-        todo!()
+    fn score(next: &State, _previous: &Node) -> usize {
+        next.available_resources.geode
     }
 
-    fn heuristic(next: &State, previous: &Node) -> usize {
-        todo!()
+    fn heuristic(next: &State, _previous: &Node) -> usize {
+        0
+        + 1  * next.nb_ore_robots
+        + 2  * next.nb_clay_robots
+        + 3  * next.nb_obsidian_robots
+        + 4  * next.nb_geode_robots
+        + 5  * next.available_resources.ore
+        + 6  * next.available_resources.clay
+        + 7  * next.available_resources.obsidian
+        + 8  * next.available_resources.geode
     }
 }
 
@@ -73,8 +81,8 @@ impl PartialOrd for Resources {
         let cmp = [
             self.ore.cmp(&other.ore),
             self.clay.cmp(&other.clay),
-            self.obsidian.cmp(&other.clay),
-            self.geode.cmp(&other.clay),
+            self.obsidian.cmp(&other.obsidian),
+            self.geode.cmp(&other.geode),
         ];
         
         if cmp.iter().all(|ord| ord == &std::cmp::Ordering::Equal) {
@@ -159,7 +167,7 @@ struct State {
  * Returns all possible actions from a specific state
  */
 fn possible_actions_from_state(state: &State, blueprint: &Blueprint) -> Vec<Action> {
-    let mut possible_actions = Vec::<Action>::new();
+    let mut possible_actions = vec![Action::Wait];
     if state.available_resources >= blueprint.ore_robot_cost {
         possible_actions.push(Action::BuildOreRobot);
     }
@@ -171,9 +179,6 @@ fn possible_actions_from_state(state: &State, blueprint: &Blueprint) -> Vec<Acti
     }
     if state.available_resources >= blueprint.geode_robot_cost {
         possible_actions.push(Action::BuildGeodeRobot);
-    }
-    if possible_actions.is_empty() {
-        possible_actions.push(Action::Wait);
     }
     possible_actions
 }
@@ -305,7 +310,7 @@ fn main() {
 
     // Starting node
     let starting_node = Node {
-        stack: vec![starting_state],
+        stack: vec![starting_state.clone()],
         score: 0,
         heuristic: 0,
     };
@@ -313,12 +318,32 @@ fn main() {
     // For now, we just use the 1st blueprint
     if let Some(blueprint) = blueprint_iterator.next() {
 
+        // =============== TEST ===============
+        // println!("{:?}", blueprint);
+        // println!("");
+        // println!("Starting state:");
+        // println!("{:?}", starting_state);
+        // println!("possible actions: {:?}", possible_actions_from_state(&starting_state, &blueprint));
+        // println!("");
+        // let action = Action::Wait;
+        // let next_state = next_state_with_action(&starting_state, action, &blueprint);
+        // println!("Do {:?}", action);
+        // println!("{:?}", next_state);
+        // println!("possible actions: {:?}", possible_actions_from_state(&next_state, &blueprint));
+        // println!("");
+        // let action = Action::Wait;
+        // let next_state = next_state_with_action(&next_state, action, &blueprint);
+        // println!("Do {:?}", action);
+        // println!("{:?}", next_state);
+        // println!("possible actions: {:?}", possible_actions_from_state(&next_state, &blueprint));
+        // println!("");
+        // =============== TEST ===============
+
         // Data for the search
         let mut to_visit = BinaryHeap::<Node>::new();       // Priority queue of nodes to visit
-        let mut visited = Vec::<ShortNode>::new();            // A list of the best node used to avoid searching non-promising states
-        let mut found: Option<Node> = None;                                   // Used to store the best path found
+        let mut visited = Vec::<ShortNode>::new();          // A list of the best node used to avoid searching non-promising states
+        let mut found: Option<Node> = None;                 // Used to store the best path found
         to_visit.push(starting_node.clone());
-
 
         // The Loop
         while let Some(current_node) = to_visit.pop() {
@@ -329,7 +354,7 @@ fn main() {
             });
 
             // Maybe found a better node
-            if current_node.stack.len() >= TIME_LIMIT {
+            if current_node.stack.len() > TIME_LIMIT {
                 if let Some(tmp) = &found {
                     // If node has a better score than the previous
                     if tmp.score < current_node.score {
@@ -361,133 +386,35 @@ fn main() {
                     heuristic: Node::heuristic(&next_state, &current_node),
                 };
                 // Add this node to the search if and only if no other node are better
-                // if visited.iter().all(|(name, step, h)| name != &next.name || step != &next.stack.len() || h < &next.heuristic) 
-                // && to_visit.iter().all(|other| &other.name != &next.name || other.stack.len() != next.stack.len() || &other.heuristic < &next.heuristic)
-                // {
-                //     to_visit.push(next);
-                // }
+                if visited.iter().all(|short_node| short_node.state.minute != next_state.minute || short_node.heuristic < next_node.heuristic)
+                && to_visit.iter().all(|other| other.stack.last().unwrap().minute != next_state.minute || other.heuristic < next_node.heuristic)
+                {
+                    to_visit.push(next_node);
+                }
             }
         }
+        
+        let node = found.unwrap();
+        for state in node.stack.iter() {
+            println!("======== Minute {} ========", state.minute);
+            match state.action {
+                Action::Wait => println!("Wait"),
+                Action::BuildOreRobot => println!("Build an Ore Robot"),
+                Action::BuildClayRobot => println!("Build a Clay Robot"),
+                Action::BuildObsidianRobot => println!("Build an Obsidian Robot"),
+                Action::BuildGeodeRobot => println!("Build a Geode Robot"),
+            }
+            println!("Ore robots: {}", state.nb_ore_robots);
+            println!("Clay robots: {}", state.nb_clay_robots);
+            println!("Obsidian robots: {}", state.nb_obsidian_robots);
+            println!("Geode robots: {}", state.nb_geode_robots);
+            println!("{:?}", state.available_resources);
+        }
+        println!("");
+        println!("Total geodes for blueprint {}: {}", blueprint.number, node.score);
 
     } // blueprint loop
 
 
-    // while !to_visit.is_empty() {
-    //     let current = to_visit.pop().unwrap();
-    //     visited.push((current.name.clone(), current.stack.len(), current.heuristic));
-    //     {
-    //         println!("Exploring node with depth: {}, cost: {}, h: {}, search depth: {}", current.stack.len(), current.cost, current.heuristic, to_visit.len());
-    //         // for (n, step) in current.stack.iter().enumerate() {
-    //         //     println!("======== Step {} ========", n);
-    //         //     match &step {
-    //         //         Action::WaitAt(s) => println!("Chill at node {}", s),
-    //         //         Action::OpenValve(s) => println!("Open valve {}", s),
-    //         //         Action::MoveToValve(s) => println!("Move to valve {}", s),
-    //         //     }
-    //         // }
-    //         // println!("");
-    //     }
-    //     // Stop condition
-    //     if current.stack.len() >= DEPTH_LIMIT {
-    //         let mut stack = current.stack.clone();
-    //         stack.push(current.action.clone());
-    //         let mut end = current.clone();
-    //         end.stack = stack;
-    //         if let Some(tmp) = &found {
-    //             if tmp.cost < end.cost {
-    //                 found = Some(end);
-    //             }
-    //         } else {
-    //             found = Some(end);
-    //         }
-    //         continue;
-    //     }
-    //     // find closed valves for current state
-    //     let closed = closed_valves(&current.open_valves, &graph);
-    //     // println!("Closed valves: {:?}", closed);
-    //     for closed_valve in closed.iter() {
-    //         // find shortest path to closed valve
-    //         // print!("Shortest path to {} from {}", closed_valve, &current.name);
-    //         let shortest_path = shortest_path_to_valve(closed_valve, &current.name, &graph);
-    //         // println!(" => {:?}", shortest_path);
-    //         let mut stack = current.stack.clone();
-    //         stack.push(current.action.clone());
-    //         let mut previous = current.clone();
-    //         // Simulate the steps to reach this valve
-    //         for step in shortest_path.iter().skip(1) {
-    //             let mut next = Node { 
-    //                 name: step.clone(),
-    //                 open_valves: previous.open_valves.clone(),
-    //                 action: Action::MoveToValve(step.clone()),
-    //                 stack: stack.clone(), 
-    //                 flow_tick: previous.flow_tick,
-    //                 cost: 0,
-    //                 heuristic: 0,
-    //             };
-    //             next.cost = cost(&next, &previous, &graph);
-    //             next.heuristic = heuristic(&next, &previous, &graph);
 
-    //             if next.stack.len() >= DEPTH_LIMIT { break; }
-
-    //             stack.push(next.action.clone());
-    //             // println!("Push to stack: {:?}", next.action);
-    //             previous = next;
-    //         }
-    //         // Open the closed valve
-    //         let mut open_valves = previous.open_valves.clone();
-    //         open_valves.push(previous.name.clone());
-    //         let flow_tick = previous.flow_tick + graph.get(&previous.name).unwrap().flow_rate;
-    //         let mut next = Node { 
-    //             name: previous.name.clone(),
-    //             open_valves,
-    //             action: Action::OpenValve(previous.name.clone()),
-    //             stack: stack,
-    //             flow_tick,
-    //             cost: 0,
-    //             heuristic: 0,
-    //         };
-    //         next.cost = cost(&next, &previous, &graph);
-    //         next.heuristic = heuristic(&next, &previous, &graph);
-    //         // println!("Push to queue: {:?}", next.action);
-    //         if visited.iter().all(|(name, step, h)| name != &next.name || step != &next.stack.len() || h < &next.heuristic) 
-    //         && to_visit.iter().all(|other| &other.name != &next.name || other.stack.len() != next.stack.len() || &other.heuristic < &next.heuristic)
-    //         {
-    //             to_visit.push(next);
-    //         }
-    //     }
-    //     // Or we can just chill
-    //     if closed.len() == 0 {
-    //         let mut stack = current.stack.clone();
-    //         stack.push(current.action.clone());
-    //         let mut next = Node { 
-    //             name: current.name.clone(),
-    //             open_valves: current.open_valves.clone(),
-    //             action: Action::WaitAt(current.name.clone()),
-    //             stack: stack, 
-    //             flow_tick: current.flow_tick,
-    //             cost: 0,
-    //             heuristic: 0
-    //         };
-    //         let cost = cost(&next, &current, &graph);
-    //         let heuristic = heuristic(&next, &current, &graph);
-    //         next.cost = cost;
-    //         next.heuristic = heuristic;
-    //         // Add nodes to the list
-    //         to_visit.push(next);
-    //     }
-    // }
-
-
-
-
-    // let node = found.unwrap();
-    // for (n, step) in node.stack.iter().enumerate() {
-    //     println!("======== Step {} ========", n);
-    //     match &step {
-    //         Action::WaitAt(s) => println!("Chill at node {}", s),
-    //         Action::OpenValve(s) => println!("Open valve {}", s),
-    //         Action::MoveToValve(s) => println!("Move to valve {}", s),
-    //     }
-    // }
-    // println!("Released pressure: {}", node.cost);
 }

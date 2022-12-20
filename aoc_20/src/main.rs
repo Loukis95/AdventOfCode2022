@@ -198,10 +198,10 @@ fn main() {
         .for_each(|item| list.push_back(item));
 
     // Inspect the list
-    println!("List from input:");
-    list.iter().for_each(|item| print!("{} ; ", item.get()));
-    println!("");
-    println!("");
+    // println!("List from input:");
+    // list.iter().for_each(|item| print!("{} ; ", item.get()));
+    // println!("");
+    // println!("");
 
     // Get the list length
     let list_length: isize = list.len as isize;
@@ -209,10 +209,10 @@ fn main() {
 
     // Apply the algorithm for part 1
     list.origin_iter_mut().for_each(|item| {
-        let shift = *item.get();
-        let rem = shift % list_length;
+        let value = *item.get();
+        let shift = value % (list_length-1);
         let this = item.this.clone().unwrap();
-        if rem != 0 {
+        if shift != 0 {
             // Remove item from where it was
             let this_prev = (this.clone()).borrow().previous.clone().unwrap();
             let this_next = (this.clone()).borrow().next.clone().unwrap();
@@ -220,8 +220,8 @@ fn main() {
             this_next.borrow_mut().previous = Some(this_prev.clone());
             // Find new insert position
             let mut insert_pos = this.clone();
-            if rem > 0 {
-                for _i in 0..rem {
+            if shift > 0 {
+                for _i in 0..shift {
                     let new_pos = (*insert_pos).borrow().next.as_ref().unwrap().clone();
                     insert_pos = new_pos;
                 }
@@ -233,7 +233,7 @@ fn main() {
                 this.borrow_mut().next = Some(new_next);
                 this.borrow_mut().previous = Some(new_prev);
             } else {
-                for _i in 0..rem.abs() {
+                for _i in shift..0 {
                     let new_pos = (*insert_pos).borrow().previous.as_ref().unwrap().clone();
                     insert_pos = new_pos;
                 }
@@ -246,34 +246,34 @@ fn main() {
                 this.borrow_mut().previous = Some(new_prev);
             }
             // Inspect
-            println!("Handling value {}", shift);
-            let mut current = Some(this.clone());
-            for _ in 0..list_length {
-                let link = current.clone().unwrap();
-                let value: isize = *(*link).borrow().get();
-                current = (*link).borrow().next.clone();
-                print!("{} ; ", value);
-            }
-            println!("");
+            // println!("Handling value {}", value);
+            // let mut current = Some(this.clone());
+            // for _ in 0..list_length {
+            //     let link = current.clone().unwrap();
+            //     let value: isize = *(*link).borrow().get();
+            //     current = (*link).borrow().next.clone();
+            //     print!("{} ; ", value);
+            // }
+            // println!("");
         } else {
-            println!("{} doesn't move", shift);
-            let mut current = Some(this.clone());
-            for _ in 0..list_length {
-                let link = current.clone().unwrap();
-                let value: isize = *(*link).borrow().get();
-                current = (*link).borrow().next.clone();
-                print!("{} ; ", value);
-            }
-            println!("");
+            // println!("{} doesn't move", value);
+            // let mut current = Some(this.clone());
+            // for _ in 0..list_length {
+            //     let link = current.clone().unwrap();
+            //     let value: isize = *(*link).borrow().get();
+            //     current = (*link).borrow().next.clone();
+            //     print!("{} ; ", value);
+            // }
+            // println!("");
         }
     });
     println!("");
 
     // Inspect the list
-    println!("List after reordering:");
-    list.iter().for_each(|item| print!("{} ; ", item.get()));
-    println!("");
-    println!("");
+    // println!("List after reordering:");
+    // list.iter().for_each(|item| print!("{} ; ", item.get()));
+    // println!("");
+    // println!("");
     
     // Iterate over new positions now
     println!("Items at:");

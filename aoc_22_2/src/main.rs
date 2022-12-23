@@ -1,5 +1,18 @@
 use std::{env, fs};
 
+const SIDE_LENGTH: usize = 4;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(usize)]
+enum Face {
+    Front = 0,
+    Left,
+    Right,
+    Bottom,
+    Top,
+    Back,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
     Right,
@@ -32,6 +45,20 @@ impl Rotation {
             Rotation::CounterClockwise => Rotation::Clockwise,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+struct Transform {
+    x: usize,
+    y: usize,
+    rot: Rotation,
+    apply_n: usize,
+}
+
+#[derive(Debug, Clone)]
+enum Cell {
+    Char(char),
+    Teleport(Transform),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,10 +234,8 @@ fn main() {
         });
     });
 
-    println!("Map size: {}x{}", max_x, max_y);
-
     // Starting position
-    let start = {
+    let position = {
         let mut position = Position { x: 0, y: 0, direction: Direction::Right };
         let mut found = false;
         for y in 0..max_y {
@@ -227,9 +252,140 @@ fn main() {
         position
     };
 
+    // Build the cube
+    let mut cube = [[[' '; SIDE_LENGTH]; SIDE_LENGTH]; 6];
+    // Front face of the cube
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            let x = position.x + i;
+            let y = position.y + j;
+            cube[Face::Front as usize][j][i] = map[y][x];
+        }
+    }
+    // Immediately right is the right face
+    if position.x+SIDE_LENGTH < max_x-1 && map[position.y][position.x+SIDE_LENGTH] != ' ' {
+        let mut position = position;
+        position.x += SIDE_LENGTH;
+        for j in 0..SIDE_LENGTH {
+            for i in 0..SIDE_LENGTH {
+                let x = position.x + i;
+                let y = position.y + j;
+                cube[Face::Right as usize][j][i] = map[y][x];
+            }
+        }
+    }
+    // Bottom of front face would be the bottom face
+    if position.y+SIDE_LENGTH < max_y-1 && map[position.y+SIDE_LENGTH][position.x] != ' ' {
+        let mut position = position;
+        position.y += SIDE_LENGTH;
+        for j in 0..SIDE_LENGTH {
+            for i in 0..SIDE_LENGTH {
+                let x = position.x + i;
+                let y = position.y + j;
+                cube[Face::Bottom as usize][j][i] = map[y][x];
+            }
+        }
+        // Left of the bottom face would be the left face
+        if position.x >= SIDE_LENGTH && map[position.y][position.x-SIDE_LENGTH] != ' ' {
+            let mut position = position;
+            position.x -= SIDE_LENGTH;
+            for j in 0..SIDE_LENGTH {
+                for i in 0..SIDE_LENGTH {
+                    let x = position.x + i;
+                    let y = position.y + j;
+                    cube[Face::Left as usize][i][SIDE_LENGTH-j-1] = map[y][x];
+                }
+            }
+            // Left of the left face would be the top face
+            if position.x >= SIDE_LENGTH && map[position.y][position.x-SIDE_LENGTH] != ' ' {
+                let mut position = position;
+                position.x -= SIDE_LENGTH;
+                for j in 0..SIDE_LENGTH {
+                    for i in 0..SIDE_LENGTH {
+                        let x = position.x + i;
+                        let y = position.y + j;
+                        cube[Face::Top as usize][SIDE_LENGTH-j-1][SIDE_LENGTH-i-1] = map[y][x];
+                    }
+                }
+            }
+        }
+        // Bottom of bottom face would be the back face
+        if position.y+SIDE_LENGTH < max_y-1 && map[position.y+SIDE_LENGTH][position.x] != ' ' {
+            let mut position = position;
+            position.y += SIDE_LENGTH;
+            for j in 0..SIDE_LENGTH {
+                for i in 0..SIDE_LENGTH {
+                    let x = position.x + i;
+                    let y = position.y + j;
+                    cube[Face::Back as usize][SIDE_LENGTH-j-1][i] = map[y][x];
+                }
+            }
+            // Right of the back face would be the right face
+            if position.x+SIDE_LENGTH < max_x-1 && map[position.y][position.x+SIDE_LENGTH] != ' ' {
+                let mut position = position;
+                position.x += SIDE_LENGTH;
+                for j in 0..SIDE_LENGTH {
+                    for i in 0..SIDE_LENGTH {
+                        let x = position.x + i;
+                        let y = position.y + j;
+                        cube[Face::Right as usize][SIDE_LENGTH-j-1][SIDE_LENGTH-i-1] = map[y][x];
+                    }
+                }
+            }
+        }
+    }
+
+    println!("FRONT FACE:");
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            print!("{}", cube[Face::Front as usize][j][i]);
+        }
+        println!("");
+    }
+    
+    println!("LEFT FACE:");
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            print!("{}", cube[Face::Left as usize][j][i]);
+        }
+        println!("");
+    }
+
+    println!("RIGHT FACE:");
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            print!("{}", cube[Face::Right as usize][j][i]);
+        }
+        println!("");
+    }
+
+    println!("BOTTOM FACE:");
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            print!("{}", cube[Face::Bottom as usize][j][i]);
+        }
+        println!("");
+    }
+
+    println!("TOP FACE:");
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            print!("{}", cube[Face::Top as usize][j][i]);
+        }
+        println!("");
+    }
+
+    println!("BACK FACE:");
+    for j in 0..SIDE_LENGTH {
+        for i in 0..SIDE_LENGTH {
+            print!("{}", cube[Face::Back as usize][j][i]);
+        }
+        println!("");
+    }
+
     // Read the instructions from the monkeys
     let mut repeat: usize = 0;
-    let mut pos = start;
+    let mut pos = position;
     for char in input.last().unwrap().chars() {
         if char.is_digit(10) {
             repeat *= 10;
